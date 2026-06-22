@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @db.Uuid
+  firstname     String?
+  lastname      String?
+  username      String
+  email         String   @unique
+  passwordHash  String   @map("password")
+  roles         Json
+  status        Int      @default(0) @db.SmallInt
+  security      Json
+  activeEmail   Json     @map("active_email")
+  resetPassword Json     @map("reset_password")
+  preferences   Json
+  avatarName    String?  @map("avatar_name")
+  lastVisit     DateTime @map("last_visit")
+  nbLogin       Int      @default(0) @map("nb_login")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([username], map: "UserUsernameIdx")
+  @@index([email], map: "UserEmailIdx")
+  @@index([createdAt], map: "UserCreatedAtIdx")
+  @@map("users")
+}
