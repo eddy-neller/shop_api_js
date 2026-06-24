@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { RegisterUserCommand } from "@/application/user/use-case/command/register/register.command";
-import { RegisterUserUseCase } from "@/application/user/use-case/command/register/register.use-case";
+import { RegisterUserCommand } from "@/application/user/use-case/command/register-user/register-user.command";
+import { RegisterUserUseCase } from "@/application/user/use-case/command/register-user/register-user.use-case";
 import { RequestActivationEmailCommand } from "@/application/user/use-case/command/request-activation-email/request-activation-email.command";
 import { RequestActivationEmailUseCase } from "@/application/user/use-case/command/request-activation-email/request-activation-email.use-case";
 import { ValidateActivationCommand } from "@/application/user/use-case/command/validate-activation/validate-activation.command";
@@ -10,7 +10,6 @@ import {
   makeClock,
   makeConfig,
   makeHasher,
-  makeIdGenerator,
   makeTokenProvider,
   makeTransactional,
   makeUniquenessChecker,
@@ -25,7 +24,6 @@ describe("Activation use cases", () => {
       repository,
       makeUniquenessChecker(repository),
       makeHasher(),
-      makeIdGenerator(),
       tokenProvider,
       makeClock(),
       makeTransactional(),

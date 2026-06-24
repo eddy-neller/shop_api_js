@@ -1,20 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import type { UserRepositoryPort } from '@/application/user/port/user-repository.port';
-import type { User } from '@/domain/user/model/user.aggregate';
-import type { Email } from '@/domain/user/value-object/email';
-import type { UserId } from '@/domain/user/value-object/user-id';
-import type { Username } from '@/domain/user/value-object/username';
-import { PrismaService } from '@/infrastructure/persistence/prisma/prisma.service';
-import { PrismaTransactionContext } from '@/infrastructure/persistence/prisma/transaction/prisma-transaction-context';
-import { UserMapper } from '@/infrastructure/persistence/user/user.mapper';
+import { Prisma } from "@prisma/client";
+import type { IdGeneratorPort } from "@/application/user/port/id-generator.port";
+import type { UserRepositoryPort } from "@/application/user/port/user-repository.port";
+import type { User } from "@/domain/user/model/user.aggregate";
+import type { Email } from "@/domain/user/value-object/email";
+import { UserId } from "@/domain/user/value-object/user-id";
+import type { Username } from "@/domain/user/value-object/username";
+import type { PrismaService } from "@/infrastructure/persistence/prisma/prisma.service";
+import type { PrismaTransactionContext } from "@/infrastructure/persistence/prisma/transaction/prisma-transaction-context";
+import { UserMapper } from "@/infrastructure/persistence/user/user.mapper";
 
-@Injectable()
 export class PrismaUserRepository implements UserRepositoryPort {
   public constructor(
     private readonly prisma: PrismaService,
     private readonly transactionContext: PrismaTransactionContext,
+    private readonly idGenerator: IdGeneratorPort,
   ) {}
+
+  public nextIdentity(): UserId {
+    return UserId.fromString(this.idGenerator.generate());
+  }
 
   public async save(user: User): Promise<void> {
     const data = UserMapper.toPersistence(user);
@@ -38,14 +42,22 @@ export class PrismaUserRepository implements UserRepositoryPort {
         avatarName: data.avatarName,
         lastVisit: data.lastVisit,
         nbLogin: data.nbLogin,
-        updatedAt: data.updatedAt
-      }
+        updatedAt: data.updatedAt,
+      },
+    });
+  }
+
+  public async delete(user: User): Promise<void> {
+    const id = user.toSnapshot().id;
+
+    await this.client().user.delete({
+      where: { id },
     });
   }
 
   public async findById(id: UserId): Promise<User | null> {
     const record = await this.client().user.findUnique({
-      where: { id: id.toString() }
+      where: { id: id.toString() },
     });
 
     return record === null ? null : UserMapper.toDomain(record);
@@ -53,7 +65,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   public async findByEmail(email: Email): Promise<User | null> {
     const record = await this.client().user.findUnique({
-      where: { email: email.toString() }
+      where: { email: email.toString() },
     });
 
     return record === null ? null : UserMapper.toDomain(record);
@@ -61,7 +73,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   public async findByUsername(username: Username): Promise<User | null> {
     const record = await this.client().user.findFirst({
-      where: { username: username.toString() }
+      where: { username: username.toString() },
     });
 
     return record === null ? null : UserMapper.toDomain(record);
@@ -71,10 +83,10 @@ export class PrismaUserRepository implements UserRepositoryPort {
     const record = await this.client().user.findFirst({
       where: {
         activeEmail: {
-          path: ['token'],
-          equals: token
-        }
-      }
+          path: ["token"],
+          equals: token,
+        },
+      },
     });
 
     return record === null ? null : UserMapper.toDomain(record);
@@ -84,17 +96,20 @@ export class PrismaUserRepository implements UserRepositoryPort {
     const record = await this.client().user.findFirst({
       where: {
         resetPassword: {
-          path: ['token'],
-          equals: token
-        }
-      }
+          path: ["token"],
+          equals: token,
+        },
+      },
     });
 
     return record === null ? null : UserMapper.toDomain(record);
   }
 
   public isUniqueConstraintError(error: unknown): boolean {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    );
   }
 
   private client(): Prisma.TransactionClient | PrismaService {

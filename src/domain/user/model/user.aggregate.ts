@@ -3,9 +3,14 @@ import { ActivationEmailRequestedEvent } from "@/domain/user/event/activation-em
 import { PasswordResetCompletedEvent } from "@/domain/user/event/password-reset-completed.event";
 import { PasswordResetRequestedEvent } from "@/domain/user/event/password-reset-requested.event";
 import { UserActivatedEvent } from "@/domain/user/event/user-activated.event";
+import { UserAvatarUpdatedEvent } from "@/domain/user/event/user-avatar-updated.event";
 import { UserRegisteredEvent } from "@/domain/user/event/user-registered.event";
 import { UserWrongPasswordAttemptRegisteredEvent } from "@/domain/user/event/user-wrong-password-attempt-registered.event";
 import { UserWrongPasswordAttemptsResetEvent } from "@/domain/user/event/user-wrong-password-attempts-reset.event";
+import { UserCreatedByAdminEvent } from "@/domain/user/event/user-created-by-admin.event";
+import { UserDeletedByAdminEvent } from "@/domain/user/event/user-deleted-by-admin.event";
+import { UserPasswordUpdatedEvent } from "@/domain/user/event/user-password-updated.event";
+import { UserUpdatedByAdminEvent } from "@/domain/user/event/user-updated-by-admin.event";
 import { ActivationLimitReachedException } from "@/domain/user/exception/activation-limit-reached.exception";
 import { ResetPasswordLimitReachedException } from "@/domain/user/exception/reset-password-limit-reached.exception";
 import { UserDomainException } from "@/domain/user/exception/user-domain-exception";
@@ -15,6 +20,8 @@ import {
   type ActiveEmailSnapshot,
 } from "@/domain/user/value-object/active-email";
 import { Email } from "@/domain/user/value-object/email";
+import type { Firstname } from "@/domain/user/value-object/firstname";
+import type { Lastname } from "@/domain/user/value-object/lastname";
 import { PasswordHash } from "@/domain/user/value-object/password-hash";
 import {
   Preferences,
@@ -65,7 +72,7 @@ export class User {
     private username: Username,
     private email: Email,
     private passwordHash: PasswordHash,
-    private readonly roles: UserRole[],
+    private roles: UserRole[],
     private status: UserStatus,
     private security: Security,
     private activeEmail: ActiveEmail,
@@ -108,6 +115,45 @@ export class User {
 
     user.events.push(
       new UserRegisteredEvent(params.id, params.email, params.now),
+    );
+
+    return user;
+  }
+
+  public static createByAdmin(params: {
+    id: UserId;
+    username: Username;
+    email: Email;
+    passwordHash: PasswordHash;
+    roles: UserRole[];
+    status: UserStatus;
+    preferences: Preferences;
+    now: Date;
+    firstname?: Firstname | null;
+    lastname?: Lastname | null;
+  }): User {
+    const user = new User(
+      params.id,
+      params.firstname?.toString() ?? null,
+      params.lastname?.toString() ?? null,
+      params.username,
+      params.email,
+      params.passwordHash,
+      [...params.roles],
+      params.status,
+      new Security(),
+      new ActiveEmail(),
+      new ResetPassword(),
+      params.preferences,
+      null,
+      params.now,
+      0,
+      params.now,
+      params.now,
+    );
+
+    user.events.push(
+      new UserCreatedByAdminEvent(params.id, params.email, params.now),
     );
 
     return user;
@@ -226,6 +272,79 @@ export class User {
     this.events.push(new UserWrongPasswordAttemptsResetEvent(this.id, now));
   }
 
+  public updateByAdmin(params: {
+    now: Date;
+    username: Username | null;
+    email: Email | null;
+    firstname: Firstname | null;
+    lastname: Lastname | null;
+    roles: UserRole[] | null;
+    status: UserStatus | null;
+    passwordHash: PasswordHash | null;
+  }): void {
+    let hasChanges = false;
+
+    if (params.username !== null) {
+      this.username = params.username;
+      hasChanges = true;
+    }
+
+    if (params.email !== null) {
+      this.email = params.email;
+      hasChanges = true;
+    }
+
+    if (params.firstname !== null) {
+      this.firstname = params.firstname.toString();
+      hasChanges = true;
+    }
+
+    if (params.lastname !== null) {
+      this.lastname = params.lastname.toString();
+      hasChanges = true;
+    }
+
+    if (params.roles !== null) {
+      this.roles = [...params.roles];
+      hasChanges = true;
+    }
+
+    if (params.status !== null) {
+      this.status = params.status;
+      hasChanges = true;
+    }
+
+    if (params.passwordHash !== null) {
+      this.passwordHash = params.passwordHash;
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      return;
+    }
+
+    this.touch(params.now);
+    this.events.push(new UserUpdatedByAdminEvent(this.id, params.now));
+  }
+
+  public changePassword(passwordHash: PasswordHash, now: Date): void {
+    this.passwordHash = passwordHash;
+    this.touch(now);
+
+    this.events.push(new UserPasswordUpdatedEvent(this.id, now));
+  }
+
+  public updateAvatar(avatarName: string, now: Date): void {
+    this.avatarName = avatarName;
+    this.touch(now);
+
+    this.events.push(new UserAvatarUpdatedEvent(this.id, now));
+  }
+
+  public deleteByAdmin(now: Date): void {
+    this.events.push(new UserDeletedByAdminEvent(this.id, now));
+  }
+
   public isActive(): boolean {
     return this.status.isActive();
   }
@@ -268,11 +387,11 @@ export class User {
     const ttl = this.activeEmail.getTokenTtl() ?? 0;
 
     if (ttl <= 0 || ttl <= User.toUnixTimestamp(now)) {
-      throw new UserDomainException("Token d'activation expiré.");
+      throw new UserDomainException("Activation token has expired.");
     }
 
     if (this.activeEmail.getToken() !== token) {
-      throw new UserDomainException("Token d'activation invalide.");
+      throw new UserDomainException("Activation token is invalid.");
     }
   }
 
@@ -280,11 +399,11 @@ export class User {
     const ttl = this.resetPassword.getTokenTtl() ?? 0;
 
     if (ttl <= 0 || ttl <= User.toUnixTimestamp(now)) {
-      throw new UserDomainException("Token de réinitialisation expiré.");
+      throw new UserDomainException("Password reset token has expired.");
     }
 
     if (this.resetPassword.getToken() !== token) {
-      throw new UserDomainException("Token de réinitialisation invalide.");
+      throw new UserDomainException("Password reset token is invalid.");
     }
   }
 

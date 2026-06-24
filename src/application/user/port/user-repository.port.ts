@@ -6,7 +6,9 @@ import type { Username } from '@/domain/user/value-object/username';
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY');
 
 export interface UserRepositoryPort {
+  nextIdentity(): UserId;
   save(user: User): Promise<void>;
+  delete(user: User): Promise<void>;
   findById(id: UserId): Promise<User | null>;
   findByEmail(email: Email): Promise<User | null>;
   findByUsername(username: Username): Promise<User | null>;

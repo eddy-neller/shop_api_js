@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { RegisterUserCommand } from "@/application/user/use-case/command/register/register.command";
-import { RegisterUserUseCase } from "@/application/user/use-case/command/register/register.use-case";
+import { RegisterUserCommand } from "@/application/user/use-case/command/register-user/register-user.command";
+import { RegisterUserUseCase } from "@/application/user/use-case/command/register-user/register-user.use-case";
 import { RegisterWrongPasswordAttemptCommand } from "@/application/user/use-case/command/register-wrong-password-attempt/register-wrong-password-attempt.command";
 import { RegisterWrongPasswordAttemptUseCase } from "@/application/user/use-case/command/register-wrong-password-attempt/register-wrong-password-attempt.use-case";
 import { ResetWrongPasswordAttemptsCommand } from "@/application/user/use-case/command/reset-wrong-password-attempts/reset-wrong-password-attempts.command";
@@ -10,7 +10,6 @@ import {
   makeClock,
   makeConfig,
   makeHasher,
-  makeIdGenerator,
   makeTokenProvider,
   makeTransactional,
   makeUniquenessChecker,
@@ -24,7 +23,6 @@ describe("Wrong password attempt use cases", () => {
       repository,
       makeUniquenessChecker(repository),
       makeHasher(),
-      makeIdGenerator(),
       makeTokenProvider("activation-token"),
       makeClock(),
       makeTransactional(),

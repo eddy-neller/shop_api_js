@@ -1,14 +1,28 @@
 import type { UserRepositoryPort } from '@/application/user/port/user-repository.port';
 import type { User } from '@/domain/user/model/user.aggregate';
 import type { Email } from '@/domain/user/value-object/email';
-import type { UserId } from '@/domain/user/value-object/user-id';
+import { UserId } from '@/domain/user/value-object/user-id';
 import type { Username } from '@/domain/user/value-object/username';
 
 export class InMemoryUserRepository implements UserRepositoryPort {
   private readonly users = new Map<string, User>();
 
+  public constructor(
+    private readonly nextId = '11111111-1111-4111-8111-111111111111',
+  ) {}
+
+  public nextIdentity(): UserId {
+    return UserId.fromString(this.nextId);
+  }
+
   public save(user: User): Promise<void> {
     this.users.set(user.toSnapshot().id, user);
+
+    return Promise.resolve();
+  }
+
+  public delete(user: User): Promise<void> {
+    this.users.delete(user.toSnapshot().id);
 
     return Promise.resolve();
   }

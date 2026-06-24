@@ -4,6 +4,18 @@ Guide pour humains et agents travaillant sur ce depot. Objectif: garder une API 
 
 Ce projet est l'API secondaire TypeScript de l'application E.N Shop.
 
+L'API principale (PHP / Symfony / API Platform, Clean Architecture + DDD) est accessible depuis `../api/`. Elle sert de reference fonctionnelle et architecturale: les use cases, le modele (User, Shop à l'avenir), les ports et les regles metier de ce projet doivent rester coherents avec elle. Consulter `../api/` (notamment `application/src/`, `domain/**/src`, `presentation/src/`) avant d'ajouter ou de modifier un comportement métier.
+
+L'API principale est une reference, pas un dogme. Si une implementation de `../api/` n'est pas la meilleure solution dans ce projet (choix discutable, heritage technique, contrainte propre a Symfony/API Platform sans equivalent pertinent en NestJS), le signaler explicitement plutot que de la cloner par souci de parite. Distinguer la coherence metier/architecturale (a preserver) de la copie d'un detail de transport ou de validation (a questionner). Proposer alors la meilleure solution et laisser la decision a l'humain.
+
+> **Ne consigner ici que des regles transverses et des resumes.** Toute regle specifique a une couche doit etre ecrite — en detail — dans le `AGENTS.md` de cette couche, jamais dans ce fichier.
+>
+> **Regles specifiques a une couche** → fichier `AGENTS.md` du dossier correspondant (charge a la demande quand on travaille dans cette couche) :
+> - [`src/domain/AGENTS.md`](src/domain/AGENTS.md) — DDD, agregats, Value Objects, events, exceptions metier
+> - [`src/application/AGENTS.md`](src/application/AGENTS.md) — use cases, CQRS, commands/queries, ports, read models
+> - [`src/infrastructure/AGENTS.md`](src/infrastructure/AGENTS.md) — adapters, handlers CQRS, Prisma, mappers, persistance
+> - [`src/presentation/AGENTS.md`](src/presentation/AGENTS.md) — controllers HTTP, DTOs, presenters, filtres, routes
+
 ---
 
 ## Stack
@@ -62,6 +74,10 @@ Voir `.env.example`.
 - `REGISTER_TOKEN_TTL`: duree ISO-8601 du token d'activation, defaut code `P2D`.
 - `RESET_PASSWORD_TOKEN_TTL`: duree ISO-8601 du token de reset password, defaut code `PT15M`.
 - `MAX_LOGIN_ATTEMPTS`: nombre d'echecs de mot de passe avant blocage, defaut code `5`.
+- `AVATAR_UPLOAD_DIR`: repertoire de stockage disque des avatars, defaut code `public/uploads/images/user/avatar`.
+- `AVATAR_BASE_URL`: prefixe d'URL publique servant les avatars, defaut code `/uploads/images/user/avatar`.
+- `AVATAR_MAX_SIZE`: taille max d'un avatar en octets, defaut code `2097152` (2 Mo).
+- `AVATAR_MAX_DIMENSION`: dimension max (largeur/hauteur) d'un avatar en pixels, defaut code `512`.
 
 Ne jamais committer de secrets reels. `.env` reste local.
 
@@ -90,6 +106,8 @@ Regles de dependances:
 - Prisma models sont des modeles de persistance, pas des modeles metier. Convertir via mapper avant de rejoindre Domain/Application.
 
 Mantra CQRS cote Presentation: toujours via `CommandBus` / `QueryBus`, jamais via un use case ou handler injecte directement dans un controller.
+
+Le detail des regles de chaque couche vit dans son `AGENTS.md` dedie (voir les liens en tete de fichier).
 
 ---
 
@@ -155,159 +173,6 @@ Conserver cette organisation par bounded context. Si un nouveau domaine apparait
 - Garder les signatures publiques explicites.
 - Utiliser l'alias `@/...` pour les imports depuis `src`; les tests peuvent utiliser des imports relatifs pour leurs helpers locaux.
 - Eviter les side effects au chargement des modules hors bootstrap, seed ou configuration.
-
----
-
-## Domain
-
-Role: coeur metier pur.
-
-Contient:
-
-- Aggregats et entites dans `model/`.
-- Value Objects dans `value-object/`.
-- Domain Events dans `event/`.
-- Exceptions metier dans `exception/`.
-- Exceptions d'unicite dans `exception/uniqueness/` quand elles concernent un invariant utilisateur.
-
-Regles:
-
-- Aucune dependance vers Application, Infrastructure ou Presentation.
-- Aucune dependance NestJS, Prisma, class-validator, bcrypt, crypto, HTTP, DB ou environnement.
-- Les Value Objects valident et normalisent leurs invariants (`Email`, `UserId`, `PasswordHash`).
-- Les comparaisons de Value Objects se font via `equals()` quand disponible.
-- Les aggregats exposent des methodes metier et des factories (`register`, `fromSnapshot`), pas de setters publics.
-- `fromSnapshot` sert a rehydrater depuis la persistance et ne doit pas enregistrer d'event metier.
-- Les comportements utilisateur actuels couvrent inscription, demande/validation d'activation, demande/confirmation de reset password, enregistrement et remise a zero des tentatives de mauvais mot de passe.
-- Les events Domain sont des faits passes (`UserRegisteredEvent`) et doivent rester independants des frameworks.
-- Le temps est fourni au Domain par parametre (`now: Date`), jamais cree directement dans le Domain.
-- Les snapshots sont des contrats internes Domain <-> mapper; ne pas les exposer tels quels en HTTP.
-
-Quand un nouvel invariant est ajoute, ajouter ou mettre a jour l'exception Domain ciblee et les tests unitaires associes.
-
----
-
-## Application
-
-Role: orchestration des cas d'usage.
-
-Contient:
-
-- Commands et Queries (`RegisterUserCommand`, `GetUserByIdQuery`).
-- Use cases (`RegisterUserUseCase`, `GetUserByIdUseCase`).
-- Ports user (`UserRepositoryPort`, `PasswordHasherPort`, `IdGeneratorPort`, `TokenProviderPort`, `UserUniquenessCheckerPort`).
-- Ports partages (`ClockPort`, `ConfigPort`, `TransactionalPort`) dans `src/application/shared/port`.
-- Services applicatifs purs (`UserUniquenessChecker`) quand ils orchestrent plusieurs ports sans dependance technique.
-- Read models et mappers de read model.
-- Erreurs Domain/Application attendues (`UserNotFoundException`, exceptions d'unicite, erreurs de token, limites d'activation/reset, utilisateur bloque).
-
-Regles:
-
-- Depend uniquement de Domain et des ports Application.
-- Ne depend jamais de NestJS, Prisma, Express, HTTP decorators, DTOs Presentation ou implementations Infrastructure.
-- Les use cases orchestrent: valider les entrees en VOs, charger via ports, appeler Domain, persister via ports, retourner un read model.
-- La logique metier reste dans Domain; Application gere seulement les decisions d'orchestration et les erreurs de cas d'usage.
-- Toute dependance externe ou technique doit passer par un port dans `src/application/**/port`.
-- Les tokens de DI (`USER_REPOSITORY`, `PASSWORD_HASHER`, `ID_GENERATOR`, `TOKEN_PROVIDER`, `USER_UNIQUENESS_CHECKER`, `CLOCK`, `CONFIG`, `TRANSACTIONAL`) vivent avec les ports.
-- Les durees et limites configurables passent par `ConfigPort`; garder les valeurs par defaut dans le use case si elles sont propres au cas d'usage.
-- Les use cases qui modifient l'agregat et persistent doivent passer par `TransactionalPort`.
-- Les read models Application sont des objets/types simples et stables; Presentation les transforme via presenters.
-- Ne pas retourner d'agregat Domain, d'objet Prisma ou d'objet Nest depuis un use case.
-
-Temps:
-
-- Le temps courant passe par `ClockPort`. Ne pas utiliser `new Date()` dans les use cases sauf pour transformer une valeur deja recue.
-- Les TTL applicatifs utilisent des durees ISO-8601 avec `addIsoDuration`.
-
----
-
-## Infrastructure
-
-Role: implementation des ports et integration frameworks.
-
-Contient:
-
-- Modules Nest et providers dans `src/infrastructure/nest`.
-- Handlers `@nestjs/cqrs` dans `src/infrastructure/nest/cqrs`.
-- Prisma client/service/repositories/mappers dans `src/infrastructure/persistence`.
-- Transaction Prisma (`PrismaTransactional`, `PrismaTransactionContext`).
-- Services techniques (`BcryptPasswordHasher`, `UuidGenerator`, `Base64TokenProvider`, `SystemClock`, `EnvConfig`).
-
-Regles:
-
-- Infrastructure peut dependre de Domain, des ports Application, NestJS, Prisma et bibliotheques techniques.
-- Infrastructure ne depend pas de `src/presentation`.
-- Les handlers Nest CQRS adaptent `CommandBus`/`QueryBus` vers les use cases. Ils ne contiennent pas de logique metier.
-- Les providers de ports sont centralises dans `src/infrastructure/nest/user/user.providers.ts`.
-- Les implementations de ports doivent rester substituables par des doubles de test.
-- `process.env` doit rester derriere `EnvConfig` ou un adapter Infrastructure equivalent, pas dans Domain/Application.
-- Les repositories Prisma doivent utiliser le client de transaction courant via `PrismaTransactionContext` quand il existe.
-
-Handlers CQRS:
-
-- Un `*NestCommandHandler` pour chaque command ecrite exposee via Nest CQRS.
-- Un `*NestQueryHandler` pour chaque query lue exposee via Nest CQRS.
-- Le handler injecte le use case et appelle `execute`.
-- Ne pas injecter Prisma, hasher ou repository concret dans un handler CQRS si un use case et un port existent.
-
----
-
-## Prisma et persistance
-
-Source de verite persistence: `prisma/schema.prisma` + migrations.
-
-Regles:
-
-- Le modele Prisma `User` mappe la table `users`; respecter les `@map` et `@@map` existants.
-- `passwordHash` mappe la colonne `password`.
-- JSON Prisma (`roles`, `security`, `activeEmail`, `resetPassword`, `preferences`) doit etre valide par mapper avant d'entrer dans Domain.
-- Les index nommes doivent rester explicites (`UserUsernameIdx`, `UserEmailIdx`, `UserCreatedAtIdx`).
-- Toute modification de schema doit etre accompagnee d'une migration Prisma.
-- Apres changement de schema, lancer `npm run prisma:generate` puis les tests pertinents.
-- Ne pas faire fuiter `Prisma.User`, `PrismaClient` ou des `Prisma.*Input` hors Infrastructure.
-- Les repositories convertissent toujours via `UserMapper`.
-- Les contraintes d'unicite DB ne remplacent pas les erreurs applicatives; si une race condition est traitee, convertir l'erreur Prisma en erreur applicative claire.
-
-Repository actuel:
-
-- `PrismaUserRepository.save` utilise `upsert`.
-- Les lectures `findById`, `findByEmail`, `findByUsername`, `findByActivationToken` et `findByResetPasswordToken` retournent `User | null`.
-- `UserMapper.toPersistence` retourne une entree Prisma create/update compatible; garder le mapping exhaustif et explicite.
-- `PrismaUserRepository` doit utiliser le client transactionnel quand `TransactionalPort` execute une operation.
-
----
-
-## Presentation HTTP
-
-Role: transport HTTP, validation d'entree, mapping HTTP.
-
-Contient:
-
-- Controllers Nest dans `src/presentation/http/**`.
-- DTOs de requete avec `class-validator`.
-- Presenters HTTP.
-- Exception filters et mapping erreurs -> status HTTP.
-
-Regles:
-
-- Controllers utilisent uniquement `CommandBus` et `QueryBus` pour declencher un cas d'usage.
-- Pas d'injection de use case, repository, Prisma service, hasher ou adapter technique dans un controller.
-- DTOs Presentation valident la forme HTTP, pas les invariants metier profonds.
-- Presenters convertissent les read models Application en reponses HTTP.
-- Les filtres convertissent les exceptions Domain/Application connues en reponses HTTP stables.
-- Quand une nouvelle erreur Domain/Application peut remonter a l'API, l'ajouter au mapping du filtre concerne.
-- Garder la validation globale de `src/main.ts`: `whitelist`, `forbidNonWhitelisted`, `transform`.
-
-Routes actuelles:
-
-- `POST /users/register` avec `RegisterUserRequest`.
-- `POST /users/register/email-activation-request` avec `RequestActivationEmailRequest`, reponse `204`.
-- `POST /users/register/validation` avec `ValidateActivationRequest`, reponse `204`.
-- `POST /users/reset-password/request` avec `RequestPasswordResetRequest`, reponse `204`.
-- `POST /users/reset-password/confirm` avec `ConfirmPasswordResetRequest`, reponse `204`.
-- `GET /users/:id` avec `GetUserByIdQuery`.
-
-Attention: les ids User sont des UUID. Toute validation de parametre `id` doit etre compatible UUID.
 
 ---
 
@@ -400,6 +265,7 @@ Ne pas corriger des fichiers sans rapport pour satisfaire un formatage global sa
 - [ ] Les mutations applicatives passent par `TransactionalPort` quand plusieurs operations doivent rester coherentes.
 - [ ] Le temps courant passe par `ClockPort`; la configuration runtime passe par `ConfigPort`.
 - [ ] Les erreurs nouvelles sont mappees vers HTTP si elles sortent de l'API.
+- [ ] Les messages des exceptions metier (Domain et Application) sont en anglais.
 - [ ] Les ids User sont traites comme UUID.
 - [ ] Les tests unitaires couvrent les nouveaux VOs, aggregats et use cases.
 - [ ] `npm test` et `npm run lint` passent ou les echecs sont expliques.

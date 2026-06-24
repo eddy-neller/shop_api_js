@@ -1,13 +1,11 @@
-import { IsString, Matches, MinLength } from "class-validator";
-
-const PASSWORD_PATTERN = /^(?=.*[()!@#$%^&*_-])(?=.*\d)(?=.*[A-Z]).{8,30}$/;
+import { IsString, MinLength } from "class-validator";
+import { IsPassword } from "@/presentation/http/shared/validation/is-password.decorator";
 
 export class ConfirmPasswordResetRequest {
   @IsString()
   @MinLength(1)
   public token!: string;
 
-  @IsString()
-  @Matches(PASSWORD_PATTERN)
+  @IsPassword()
   public newPassword!: string;
 }

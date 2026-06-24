@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
-import type { IdGeneratorPort } from "@/application/user/port/id-generator.port";
 import type { PasswordHasherPort } from "@/application/user/port/password-hasher.port";
 import type { TokenProviderPort } from "@/application/user/port/token-provider.port";
-import { RegisterUserCommand } from "@/application/user/use-case/command/register/register.command";
-import { RegisterUserUseCase } from "@/application/user/use-case/command/register/register.use-case";
+import { RegisterUserCommand } from "@/application/user/use-case/command/register-user/register-user.command";
+import { RegisterUserUseCase } from "@/application/user/use-case/command/register-user/register-user.use-case";
 import { UserUniquenessChecker } from "@/application/user/service/user-uniqueness-checker";
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
 import { InMemoryUserRepository } from "./in-memory-user.repository";
@@ -46,9 +45,7 @@ describe("RegisterUserUseCase", () => {
 function makeUseCase(repository: InMemoryUserRepository): RegisterUserUseCase {
   const hasher: PasswordHasherPort = {
     hash: () => Promise.resolve("hashed-password"),
-  };
-  const idGenerator: IdGeneratorPort = {
-    generate: () => "11111111-1111-4111-8111-111111111111",
+    verify: () => Promise.resolve(true),
   };
   const tokenProvider: TokenProviderPort = {
     generateRandomToken: () => "activation-token",
@@ -70,7 +67,6 @@ function makeUseCase(repository: InMemoryUserRepository): RegisterUserUseCase {
     repository,
     new UserUniquenessChecker(repository),
     hasher,
-    idGenerator,
     tokenProvider,
     clock,
     transactional,

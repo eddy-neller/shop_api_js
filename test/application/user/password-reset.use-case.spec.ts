@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ConfirmPasswordResetCommand } from "@/application/user/use-case/command/confirm-password-reset/confirm-password-reset.command";
 import { ConfirmPasswordResetUseCase } from "@/application/user/use-case/command/confirm-password-reset/confirm-password-reset.use-case";
-import { RegisterUserCommand } from "@/application/user/use-case/command/register/register.command";
-import { RegisterUserUseCase } from "@/application/user/use-case/command/register/register.use-case";
+import { RegisterUserCommand } from "@/application/user/use-case/command/register-user/register-user.command";
+import { RegisterUserUseCase } from "@/application/user/use-case/command/register-user/register-user.use-case";
 import { RequestPasswordResetCommand } from "@/application/user/use-case/command/request-password-reset/request-password-reset.command";
 import { RequestPasswordResetUseCase } from "@/application/user/use-case/command/request-password-reset/request-password-reset.use-case";
 import { Email } from "@/domain/user/value-object/email";
@@ -10,7 +10,6 @@ import {
   makeClock,
   makeConfig,
   makeHasher,
-  makeIdGenerator,
   makeTokenProvider,
   makeTransactional,
   makeUniquenessChecker,
@@ -25,7 +24,6 @@ describe("Password reset use cases", () => {
       repository,
       makeUniquenessChecker(repository),
       makeHasher(),
-      makeIdGenerator(),
       tokenProvider,
       makeClock(),
       makeTransactional(),

@@ -1,3 +1,5 @@
+import { InvalidUserStatusException } from '@/domain/user/exception/invalid-user-status.exception';
+
 export class UserStatus {
   public static readonly Inactive = 0;
   public static readonly Active = 1;
@@ -18,6 +20,16 @@ export class UserStatus {
   }
 
   public static fromNumber(value: number): UserStatus {
+    const allowed = [
+      UserStatus.Inactive,
+      UserStatus.Active,
+      UserStatus.Blocked
+    ];
+
+    if (!allowed.includes(value)) {
+      throw InvalidUserStatusException.unsupported(value);
+    }
+
     return new UserStatus(value);
   }
 

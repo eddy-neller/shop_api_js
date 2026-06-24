@@ -1,25 +1,31 @@
 import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
-import type { IdGeneratorPort } from "@/application/user/port/id-generator.port";
+import type { AvatarImageValidatorPort } from "@/application/user/port/avatar-image-validator.port";
+import type { AvatarUploaderPort } from "@/application/user/port/avatar-uploader.port";
+import type { AvatarUrlResolverPort } from "@/application/user/port/avatar-url-resolver.port";
 import type { PasswordHasherPort } from "@/application/user/port/password-hasher.port";
 import type { TokenProviderPort } from "@/application/user/port/token-provider.port";
 import { UserUniquenessChecker } from "@/application/user/service/user-uniqueness-checker";
+import { InvalidAvatarException } from "@/domain/user/exception/invalid-avatar.exception";
 import type { InMemoryUserRepository } from "./in-memory-user.repository";
 
 export const fixedNow = new Date("2026-06-22T12:00:00.000Z");
 
-export function makeHasher(hash = "hashed-password"): PasswordHasherPort {
+export function makeHasher(
+  hash = "hashed-password",
+  verifyResult:
+    | boolean
+    | ((storedHash: string, plainPassword: string) => boolean) = true,
+): PasswordHasherPort {
   return {
     hash: () => Promise.resolve(hash),
-  };
-}
-
-export function makeIdGenerator(
-  id = "11111111-1111-4111-8111-111111111111",
-): IdGeneratorPort {
-  return {
-    generate: () => id,
+    verify: (storedHash, plainPassword) =>
+      Promise.resolve(
+        typeof verifyResult === "function"
+          ? verifyResult(storedHash, plainPassword)
+          : verifyResult,
+      ),
   };
 }
 
@@ -71,4 +77,38 @@ export function makeUniquenessChecker(
   repository: InMemoryUserRepository,
 ): UserUniquenessChecker {
   return new UserUniquenessChecker(repository);
+}
+
+export function makeAvatarUrlResolver(
+  baseUrl = "/uploads/images/user/avatar",
+): AvatarUrlResolverPort {
+  return {
+    resolve: (avatarName) =>
+      avatarName === null ? null : `${baseUrl}/${avatarName}`,
+  };
+}
+
+export function makeAvatarUploader(
+  avatarName = "avatar-hash.png",
+  deletedNames: string[] = [],
+): AvatarUploaderPort {
+  return {
+    upload: () => Promise.resolve(avatarName),
+    delete: (name) => {
+      deletedNames.push(name);
+
+      return Promise.resolve();
+    },
+  };
+}
+
+export function makeAvatarImageValidator(
+  valid = true,
+): AvatarImageValidatorPort {
+  return {
+    validate: () =>
+      valid
+        ? Promise.resolve()
+        : Promise.reject(InvalidAvatarException.invalidMimeType("text/plain")),
+  };
 }

@@ -4,6 +4,7 @@ export type UserResponse = {
   id: string;
   email: string;
   roles: string[];
+  avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -14,9 +15,9 @@ export class UserPresenter {
       id: user.id,
       email: user.email,
       roles: user.roles,
+      avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
   }
 }
-

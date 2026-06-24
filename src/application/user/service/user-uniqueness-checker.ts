@@ -3,6 +3,7 @@ import type { UserRepositoryPort } from "@/application/user/port/user-repository
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
 import { UsernameAlreadyUsedException } from "@/domain/user/exception/uniqueness/username-already-used.exception";
 import type { Email } from "@/domain/user/value-object/email";
+import type { UserId } from "@/domain/user/value-object/user-id";
 import type { Username } from "@/domain/user/value-object/username";
 
 export class UserUniquenessChecker implements UserUniquenessCheckerPort {
@@ -21,5 +22,45 @@ export class UserUniquenessChecker implements UserUniquenessCheckerPort {
     if (existingUsername !== null) {
       throw new UsernameAlreadyUsedException();
     }
+  }
+
+  public async ensureEmailAvailable(
+    email: Email,
+    excludeUserId?: UserId,
+  ): Promise<void> {
+    const existing = await this.users.findByEmail(email);
+
+    if (existing === null) {
+      return;
+    }
+
+    if (
+      excludeUserId !== undefined &&
+      existing.toSnapshot().id === excludeUserId.toString()
+    ) {
+      return;
+    }
+
+    throw new EmailAlreadyUsedException();
+  }
+
+  public async ensureUsernameAvailable(
+    username: Username,
+    excludeUserId?: UserId,
+  ): Promise<void> {
+    const existing = await this.users.findByUsername(username);
+
+    if (existing === null) {
+      return;
+    }
+
+    if (
+      excludeUserId !== undefined &&
+      existing.toSnapshot().id === excludeUserId.toString()
+    ) {
+      return;
+    }
+
+    throw new UsernameAlreadyUsedException();
   }
 }

@@ -1,6 +1,6 @@
-# en_shop API JS
+# E.N Shop API JS
 
-Secondary API focused on the `User` domain, built with NestJS, Prisma, Clean Architecture, DDD, and CQRS.
+Secondary API, built with NestJS, Prisma, Clean Architecture, DDD, and CQRS.
 
 ## Stack
 
@@ -52,15 +52,3 @@ POST /users/register/validation
 POST /users/reset-password/request
 POST /users/reset-password/confirm
 ```
-
-## Architecture
-
-```text
-Presentation -> Nest CommandBus/QueryBus -> Infrastructure CQRS handlers
-                                            -> Application use cases
-                                            -> Domain
-                                            -> Application ports
-                                            -> Infrastructure adapters
-```
-
-The domain and application layers do not import NestJS or Prisma.

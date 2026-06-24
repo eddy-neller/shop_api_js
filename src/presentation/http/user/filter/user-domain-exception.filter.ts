@@ -7,13 +7,22 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { DomainException } from "@/domain/shared/exception/domain-exception";
 import { InvalidUuidException } from "@/domain/shared/exception/invalid-uuid.exception";
 import { ActivationLimitReachedException } from "@/domain/user/exception/activation-limit-reached.exception";
+import { InvalidAvatarException } from "@/domain/user/exception/invalid-avatar.exception";
+import { InvalidCurrentPasswordException } from "@/domain/user/exception/invalid-current-password.exception";
 import { InvalidEmailException } from "@/domain/user/exception/invalid-email.exception";
+import { InvalidFirstnameException } from "@/domain/user/exception/invalid-firstname.exception";
+import { InvalidLastnameException } from "@/domain/user/exception/invalid-lastname.exception";
+import { InvalidPreferencesException } from "@/domain/user/exception/invalid-preferences.exception";
+import { InvalidRoleException } from "@/domain/user/exception/invalid-role.exception";
+import { InvalidUserStatusException } from "@/domain/user/exception/invalid-user-status.exception";
 import { ResetPasswordLimitReachedException } from "@/domain/user/exception/reset-password-limit-reached.exception";
+import { SamePasswordException } from "@/domain/user/exception/same-password.exception";
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
 import { UsernameAlreadyUsedException } from "@/domain/user/exception/uniqueness/username-already-used.exception";
 import { UserDomainException } from "@/domain/user/exception/user-domain-exception";
@@ -71,11 +80,43 @@ const USER_EXCEPTION_MAPPINGS: readonly UserExceptionMapping[] = [
   },
   {
     exception: InvalidEmailException,
-    toHttpException: (message) => new BadRequestException(message),
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidFirstnameException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidLastnameException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidAvatarException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidPreferencesException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidUserStatusException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidRoleException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: InvalidCurrentPasswordException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
+  },
+  {
+    exception: SamePasswordException,
+    toHttpException: (message) => new UnprocessableEntityException(message),
   },
   {
     exception: InvalidUuidException,
-    toHttpException: (message) => new BadRequestException(message),
+    toHttpException: (message) => new UnprocessableEntityException(message),
   },
 ] as const;
 

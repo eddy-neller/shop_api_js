@@ -24,7 +24,7 @@ export class ConfirmPasswordResetUseCase {
     const user = await this.users.findByResetPasswordToken(rawToken);
 
     if (user === null || user.toSnapshot().email !== email.toString()) {
-      throw new UserDomainException("Token de réinitialisation invalide.");
+      throw new UserDomainException("Password reset token is invalid.");
     }
 
     const passwordHash = PasswordHash.fromString(
