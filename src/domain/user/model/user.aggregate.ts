@@ -357,6 +357,50 @@ export class User {
     return this.events.splice(0, this.events.length);
   }
 
+  public getId(): UserId {
+    return this.id;
+  }
+
+  public getFirstname(): string | null {
+    return this.firstname;
+  }
+
+  public getLastname(): string | null {
+    return this.lastname;
+  }
+
+  public getUsername(): Username {
+    return this.username;
+  }
+
+  public getEmail(): Email {
+    return this.email;
+  }
+
+  public getRoles(): string[] {
+    return [...this.roles];
+  }
+
+  public getStatus(): UserStatus {
+    return this.status;
+  }
+
+  public getAvatarName(): string | null {
+    return this.avatarName;
+  }
+
+  public getLastVisit(): Date {
+    return this.lastVisit;
+  }
+
+  public getCreatedAt(): Date {
+    return this.createdAt;
+  }
+
+  public getUpdatedAt(): Date {
+    return this.updatedAt;
+  }
+
   public toSnapshot(): UserSnapshot {
     return {
       id: this.id.toString(),

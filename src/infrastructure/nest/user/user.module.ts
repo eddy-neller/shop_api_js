@@ -8,12 +8,16 @@ import {
 import { PrismaModule } from "@/infrastructure/persistence/prisma/prisma.module";
 import { UserDomainExceptionFilter } from "@/presentation/http/user/filter/user-domain-exception.filter";
 import { UserController } from "@/presentation/http/user/user.controller";
+import { UserPresenter } from "@/presentation/http/user/presenter/user.response";
+import { UserListPresenter } from "@/presentation/http/user/presenter/user-list.response";
 
 @Module({
   imports: [CqrsModule, PrismaModule],
   controllers: [UserController],
   providers: [
     UserDomainExceptionFilter,
+    UserPresenter,
+    UserListPresenter,
     ...userCqrsHandlers,
     ...userUseCaseProviders,
     ...userPortProviders,

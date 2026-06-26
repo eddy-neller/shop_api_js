@@ -1,4 +1,8 @@
-import type { UserRepositoryPort } from '@/application/user/port/user-repository.port';
+import type {
+  UserListCriteria,
+  UserListResult,
+  UserRepositoryPort,
+} from '@/application/user/port/user-repository.port';
 import type { User } from '@/domain/user/model/user.aggregate';
 import type { Email } from '@/domain/user/value-object/email';
 import { UserId } from '@/domain/user/value-object/user-id';
@@ -69,5 +73,48 @@ export class InMemoryUserRepository implements UserRepositoryPort {
     }
 
     return Promise.resolve(null);
+  }
+
+  public list(criteria: UserListCriteria): Promise<UserListResult> {
+    let users = Array.from(this.users.values());
+
+    const { username, email } = criteria.filters;
+    if (username !== undefined) {
+      const needle = username.toLowerCase();
+      users = users.filter((user) =>
+        user.toSnapshot().username.toLowerCase().includes(needle),
+      );
+    }
+    if (email !== undefined) {
+      const needle = email.toLowerCase();
+      users = users.filter((user) =>
+        user.toSnapshot().email.toLowerCase().includes(needle),
+      );
+    }
+
+    const { field, direction } = criteria.orderBy;
+    users.sort((a, b) => {
+      const left = this.sortValue(a, field);
+      const right = this.sortValue(b, field);
+      const comparison = left < right ? -1 : left > right ? 1 : 0;
+      return direction === 'ASC' ? comparison : -comparison;
+    });
+
+    const totalItems = users.length;
+    const totalPages = Math.ceil(totalItems / criteria.itemsPerPage);
+    const start = (criteria.page - 1) * criteria.itemsPerPage;
+    const paged = users.slice(start, start + criteria.itemsPerPage);
+
+    return Promise.resolve({ users: paged, totalItems, totalPages });
+  }
+
+  private sortValue(user: User, field: UserListCriteria['orderBy']['field']): string | number {
+    const snapshot = user.toSnapshot();
+
+    if (field === 'createdAt') {
+      return snapshot.createdAt.getTime();
+    }
+
+    return snapshot[field];
   }
 }

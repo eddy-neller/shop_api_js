@@ -10,17 +10,13 @@ import { DisplayUserQuery } from "@/application/user/use-case/query/display-user
 import { DisplayUserUseCase } from "@/application/user/use-case/query/display-user/display-user.use-case";
 import { UserUniquenessChecker } from "@/application/user/service/user-uniqueness-checker";
 import { UserNotFoundException } from "@/domain/user/exception/user-not-found.exception";
-import { makeAvatarUrlResolver } from "./user-use-case-fixtures";
 import { InMemoryUserRepository } from "./in-memory-user.repository";
 
 describe("DisplayUserUseCase", () => {
   it("returns an existing user", async () => {
     const repository = new InMemoryUserRepository();
     const register = makeRegisterUseCase(repository);
-    const getById = new DisplayUserUseCase(
-      repository,
-      makeAvatarUrlResolver(),
-    );
+    const getById = new DisplayUserUseCase(repository);
 
     await register.execute(
       new RegisterUserCommand("john@example.com", "john", "ChangeMe123!"),
@@ -35,10 +31,7 @@ describe("DisplayUserUseCase", () => {
 
   it("rejects an unknown user", async () => {
     const repository = new InMemoryUserRepository();
-    const getById = new DisplayUserUseCase(
-      repository,
-      makeAvatarUrlResolver(),
-    );
+    const getById = new DisplayUserUseCase(repository);
 
     await expect(
       getById.execute(

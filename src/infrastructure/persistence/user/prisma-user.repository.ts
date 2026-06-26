@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 import type { IdGeneratorPort } from "@/application/user/port/id-generator.port";
-import type { UserRepositoryPort } from "@/application/user/port/user-repository.port";
+import type {
+  UserListCriteria,
+  UserListResult,
+  UserRepositoryPort,
+} from "@/application/user/port/user-repository.port";
 import type { User } from "@/domain/user/model/user.aggregate";
 import type { Email } from "@/domain/user/value-object/email";
 import { UserId } from "@/domain/user/value-object/user-id";
@@ -103,6 +107,46 @@ export class PrismaUserRepository implements UserRepositoryPort {
     });
 
     return record === null ? null : UserMapper.toDomain(record);
+  }
+
+  public async list(criteria: UserListCriteria): Promise<UserListResult> {
+    const where: Prisma.UserWhereInput = {};
+
+    if (criteria.filters.username !== undefined) {
+      where.username = {
+        contains: criteria.filters.username,
+        mode: "insensitive",
+      };
+    }
+
+    if (criteria.filters.email !== undefined) {
+      where.email = {
+        contains: criteria.filters.email,
+        mode: "insensitive",
+      };
+    }
+
+    const orderBy: Prisma.UserOrderByWithRelationInput = {
+      [criteria.orderBy.field]:
+        criteria.orderBy.direction === "ASC" ? "asc" : "desc",
+    };
+
+    const client = this.client();
+    const [records, totalItems] = await Promise.all([
+      client.user.findMany({
+        where,
+        orderBy,
+        skip: (criteria.page - 1) * criteria.itemsPerPage,
+        take: criteria.itemsPerPage,
+      }),
+      client.user.count({ where }),
+    ]);
+
+    return {
+      users: records.map((record) => UserMapper.toDomain(record)),
+      totalItems,
+      totalPages: Math.ceil(totalItems / criteria.itemsPerPage),
+    };
   }
 
   public isUniqueConstraintError(error: unknown): boolean {

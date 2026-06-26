@@ -7,7 +7,6 @@ import { InvalidRoleException } from "@/domain/user/exception/invalid-role.excep
 import { UserNotFoundException } from "@/domain/user/exception/user-not-found.exception";
 import { UserStatus } from "@/domain/user/value-object/user-status";
 import {
-  makeAvatarUrlResolver,
   makeClock,
   makeHasher,
   makeTransactional,
@@ -22,7 +21,6 @@ async function seedUser(repository: InMemoryUserRepository): Promise<void> {
     repository,
     makeUniquenessChecker(repository),
     makeHasher("old-hash"),
-    makeAvatarUrlResolver(),
     makeClock(),
     makeTransactional(),
   );
@@ -45,7 +43,6 @@ function makeUseCase(
     repository,
     makeUniquenessChecker(repository),
     makeHasher("new-hash"),
-    makeAvatarUrlResolver(),
     makeClock(),
     makeTransactional(),
   );

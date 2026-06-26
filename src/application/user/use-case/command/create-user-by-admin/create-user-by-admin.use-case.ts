@@ -1,9 +1,7 @@
 import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
 import type { CreateUserByAdminCommand } from "@/application/user/use-case/command/create-user-by-admin/create-user-by-admin.command";
-import type { UserReadModel } from "@/application/user/dto/user-read-model";
-import { toUserReadModel } from "@/application/user/dto/user-read-model.mapper";
-import type { AvatarUrlResolverPort } from "@/application/user/port/avatar-url-resolver.port";
+import { UserReadModel } from "@/application/user/dto/user-read-model";
 import type { PasswordHasherPort } from "@/application/user/port/password-hasher.port";
 import type { UserUniquenessCheckerPort } from "@/application/user/port/user-uniqueness-checker.port";
 import type { UserRepositoryPort } from "@/application/user/port/user-repository.port";
@@ -22,7 +20,6 @@ export class CreateUserByAdminUseCase {
     private readonly users: UserRepositoryPort,
     private readonly uniquenessChecker: UserUniquenessCheckerPort,
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly avatarUrlResolver: AvatarUrlResolverPort,
     private readonly clock: ClockPort,
     private readonly transactional: TransactionalPort,
   ) {}
@@ -67,10 +64,7 @@ export class CreateUserByAdminUseCase {
 
       await this.users.save(user);
 
-      return toUserReadModel(
-        user,
-        this.avatarUrlResolver.resolve(user.toSnapshot().avatarName),
-      );
+      return UserReadModel.fromUser(user);
     });
   }
 }

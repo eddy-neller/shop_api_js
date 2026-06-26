@@ -8,13 +8,17 @@ import {
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
+  ParseUUIDPipe,
   Patch,
   Post,
+  Query,
+  Res,
   UploadedFile,
   UseFilters,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { ConfirmPasswordResetCommand } from "@/application/user/use-case/command/confirm-password-reset/confirm-password-reset.command";
 import { CreateUserByAdminCommand } from "@/application/user/use-case/command/create-user-by-admin/create-user-by-admin.command";
@@ -30,6 +34,14 @@ import type { PasswordResetTokenCheckReadModel } from "@/application/user/dto/pa
 import type { UserReadModel } from "@/application/user/dto/user-read-model";
 import { CheckPasswordResetTokenQuery } from "@/application/user/use-case/query/check-password-reset-token/check-password-reset-token.query";
 import { DisplayUserQuery } from "@/application/user/use-case/query/display-user/display-user.query";
+import { ListUsersQuery } from "@/application/user/use-case/query/list-users/list-users.query";
+import { USER_SORT_FIELDS } from "@/application/user/port/user-repository.port";
+import type { UserListReadModel } from "@/application/user/dto/user-list.read-model";
+import { ListUsersRequest } from "@/presentation/http/user/dto/list-users.request";
+import {
+  UserListPresenter,
+  type UserListItemResponse,
+} from "@/presentation/http/user/presenter/user-list.response";
 import { CheckPasswordResetTokenRequest } from "@/presentation/http/user/dto/check-password-reset-token.request";
 import { ConfirmPasswordResetRequest } from "@/presentation/http/user/dto/confirm-password-reset.request";
 import { CreateUserByAdminRequest } from "@/presentation/http/user/dto/create-user-by-admin.request";
@@ -39,14 +51,19 @@ import { RequestPasswordResetRequest } from "@/presentation/http/user/dto/reques
 import { UpdatePasswordRequest } from "@/presentation/http/user/dto/update-password.request";
 import { UpdateUserByAdminRequest } from "@/presentation/http/user/dto/update-user-by-admin.request";
 import { ValidateActivationRequest } from "@/presentation/http/user/dto/validate-activation.request";
-import { FindOneParams } from "@/presentation/http/user/dto/getbyid.request";
 import { UserDomainExceptionFilter } from "@/presentation/http/user/filter/user-domain-exception.filter";
 import {
   UserPresenter,
   type UserResponse,
 } from "@/presentation/http/user/presenter/user.response";
 
-const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+// Borne de securite au bord HTTP: rejette tot un upload manifestement trop
+// gros avant de le charger entierement en memoire (protection memoire / DoS
+// basique). Ce n'est PAS la limite metier de l'avatar: la vraie limite est
+// `AVATAR_MAX_SIZE` (configurable), validee en infra par
+// `SharpAvatarImageValidator`. Garder cette borne >= toute valeur plausible de
+// `AVATAR_MAX_SIZE` pour ne jamais masquer la validation metier.
+const MAX_AVATAR_UPLOAD_BYTES = 3 * 1024 * 1024;
 
 @Controller("users")
 @UseFilters(UserDomainExceptionFilter)
@@ -54,15 +71,54 @@ export class UserController {
   public constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly userPresenter: UserPresenter,
+    private readonly userListPresenter: UserListPresenter,
   ) {}
 
-  @Get(":id")
-  public async getById(@Param() params: FindOneParams): Promise<UserResponse> {
-    const user = await this.queryBus.execute<DisplayUserQuery, UserReadModel>(
-      new DisplayUserQuery(params.id),
+  @Get()
+  public async list(
+    @Query() request: ListUsersRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<UserListItemResponse[]> {
+    let order: ListUsersQuery["order"] = null;
+    const requestedOrder = request.order;
+    if (requestedOrder) {
+      for (const field of USER_SORT_FIELDS) {
+        const direction = requestedOrder[field];
+        if (direction !== undefined) {
+          order = { field, direction };
+          break;
+        }
+      }
+    }
+
+    const result = await this.queryBus.execute<
+      ListUsersQuery,
+      UserListReadModel
+    >(
+      new ListUsersQuery(
+        request.page ?? null,
+        request.itemsPerPage ?? null,
+        request.filters ?? {},
+        order,
+      ),
     );
 
-    return UserPresenter.present(user);
+    res.setHeader("X-Total-Count", result.totalItems);
+    res.setHeader("X-Total-Pages", result.totalPages);
+
+    return this.userListPresenter.present(result.items);
+  }
+
+  @Get(":id")
+  public async getById(
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<UserResponse> {
+    const user = await this.queryBus.execute<DisplayUserQuery, UserReadModel>(
+      new DisplayUserQuery(id),
+    );
+
+    return this.userPresenter.present(user);
   }
 
   @Post()
@@ -84,12 +140,12 @@ export class UserController {
       ),
     );
 
-    return UserPresenter.present(user);
+    return this.userPresenter.present(user);
   }
 
   @Patch(":id")
   public async updateByAdmin(
-    @Param() params: FindOneParams,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() request: UpdateUserByAdminRequest,
   ): Promise<UserResponse> {
     const user = await this.commandBus.execute<
@@ -97,7 +153,7 @@ export class UserController {
       UserReadModel
     >(
       new UpdateUserByAdminCommand(
-        params.id,
+        id,
         request.email ?? null,
         request.username ?? null,
         request.plainPassword ?? null,
@@ -108,57 +164,30 @@ export class UserController {
       ),
     );
 
-    return UserPresenter.present(user);
+    return this.userPresenter.present(user);
   }
 
   @Patch(":id/password")
   @HttpCode(204)
   public async updatePassword(
-    @Param() params: FindOneParams,
+    @Param("id", ParseUUIDPipe) id: string,
     @Body() request: UpdatePasswordRequest,
   ): Promise<void> {
     await this.commandBus.execute(
       new UpdatePasswordCommand(
-        params.id,
+        id,
         request.currentPassword,
         request.newPassword,
       ),
     );
   }
 
-  @Post(":id/avatar")
-  @UseInterceptors(FileInterceptor("avatarFile"))
-  public async updateAvatar(
-    @Param() params: FindOneParams,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: MAX_AVATAR_SIZE }),
-          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<UserResponse> {
-    const user = await this.commandBus.execute<
-      UpdateAvatarCommand,
-      UserReadModel
-    >(
-      new UpdateAvatarCommand(params.id, {
-        buffer: file.buffer,
-        mimeType: file.mimetype,
-        size: file.size,
-        originalName: file.originalname,
-      }),
-    );
-
-    return UserPresenter.present(user);
-  }
-
   @Delete(":id")
   @HttpCode(204)
-  public async deleteByAdmin(@Param() params: FindOneParams): Promise<void> {
-    await this.commandBus.execute(new DeleteUserByAdminCommand(params.id));
+  public async deleteByAdmin(
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.commandBus.execute(new DeleteUserByAdminCommand(id));
   }
 
   @Post("register")
@@ -177,7 +206,7 @@ export class UserController {
       ),
     );
 
-    return UserPresenter.present(user);
+    return this.userPresenter.present(user);
   }
 
   @Post("register/email-activation-request")
@@ -226,5 +255,36 @@ export class UserController {
     await this.commandBus.execute(
       new ConfirmPasswordResetCommand(request.token, request.newPassword),
     );
+  }
+
+  // Route POST parametree: declaree apres toutes les routes POST statiques
+  // (`register/*`, `reset-password/*`) pour ne pas risquer de les masquer.
+  @Post(":id/avatar")
+  @UseInterceptors(FileInterceptor("avatarFile"))
+  public async updateAvatar(
+    @Param("id", ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_AVATAR_UPLOAD_BYTES }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<UserResponse> {
+    const user = await this.commandBus.execute<
+      UpdateAvatarCommand,
+      UserReadModel
+    >(
+      new UpdateAvatarCommand(id, {
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        size: file.size,
+        originalName: file.originalname,
+      }),
+    );
+
+    return this.userPresenter.present(user);
   }
 }

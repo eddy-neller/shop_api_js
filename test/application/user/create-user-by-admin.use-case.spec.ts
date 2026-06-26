@@ -5,7 +5,6 @@ import { InvalidRoleException } from "@/domain/user/exception/invalid-role.excep
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
 import { UserStatus } from "@/domain/user/value-object/user-status";
 import {
-  makeAvatarUrlResolver,
   makeClock,
   makeHasher,
   makeTransactional,
@@ -20,7 +19,6 @@ function makeUseCase(
     repository,
     makeUniquenessChecker(repository),
     makeHasher(),
-    makeAvatarUrlResolver(),
     makeClock(),
     makeTransactional(),
   );

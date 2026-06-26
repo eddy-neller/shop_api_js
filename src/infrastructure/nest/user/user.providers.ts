@@ -20,10 +20,7 @@ import {
   AVATAR_UPLOADER,
   type AvatarUploaderPort,
 } from "@/application/user/port/avatar-uploader.port";
-import {
-  AVATAR_URL_RESOLVER,
-  type AvatarUrlResolverPort,
-} from "@/application/user/port/avatar-url-resolver.port";
+import { AVATAR_URL_RESOLVER } from "@/application/user/port/avatar-url-resolver.port";
 import {
   ID_GENERATOR,
   type IdGeneratorPort,
@@ -48,6 +45,8 @@ import { UserUniquenessChecker } from "@/application/user/service/user-uniquenes
 import { ConfirmPasswordResetNestCommandHandler } from "@/infrastructure/nest/cqrs/user/command/confirm-password-reset.nest-command-handler";
 import { DisplayUserUseCase } from "@/application/user/use-case/query/display-user/display-user.use-case";
 import { DisplayUserNestQueryHandler } from "@/infrastructure/nest/cqrs/user/query/display-user.nest-query-handler";
+import { ListUsersUseCase } from "@/application/user/use-case/query/list-users/list-users.use-case";
+import { ListUsersNestQueryHandler } from "@/infrastructure/nest/cqrs/user/query/list-users.nest-query-handler";
 import { RegisterWrongPasswordAttemptNestCommandHandler } from "@/infrastructure/nest/cqrs/user/command/register-wrong-password-attempt.nest-command-handler";
 import { RegisterUserNestCommandHandler } from "@/infrastructure/nest/cqrs/user/command/register-user.nest-command-handler";
 import { RequestActivationEmailNestCommandHandler } from "@/infrastructure/nest/cqrs/user/command/request-activation-email.nest-command-handler";
@@ -93,6 +92,7 @@ export const userCqrsHandlers: Provider[] = [
   UpdateAvatarNestCommandHandler,
   DeleteUserByAdminNestCommandHandler,
   DisplayUserNestQueryHandler,
+  ListUsersNestQueryHandler,
   CheckPasswordResetTokenNestQueryHandler,
 ];
 
@@ -234,7 +234,6 @@ export const userUseCaseProviders: Provider[] = [
       users: UserRepositoryPort,
       uniquenessChecker: UserUniquenessCheckerPort,
       passwordHasher: PasswordHasherPort,
-      avatarUrlResolver: AvatarUrlResolverPort,
       clock: ClockPort,
       transactional: TransactionalPort,
     ) =>
@@ -242,7 +241,6 @@ export const userUseCaseProviders: Provider[] = [
         users,
         uniquenessChecker,
         passwordHasher,
-        avatarUrlResolver,
         clock,
         transactional,
       ),
@@ -250,7 +248,6 @@ export const userUseCaseProviders: Provider[] = [
       USER_REPOSITORY,
       USER_UNIQUENESS_CHECKER,
       PASSWORD_HASHER,
-      AVATAR_URL_RESOLVER,
       CLOCK,
       TRANSACTIONAL,
     ],
@@ -261,7 +258,6 @@ export const userUseCaseProviders: Provider[] = [
       users: UserRepositoryPort,
       uniquenessChecker: UserUniquenessCheckerPort,
       passwordHasher: PasswordHasherPort,
-      avatarUrlResolver: AvatarUrlResolverPort,
       clock: ClockPort,
       transactional: TransactionalPort,
     ) =>
@@ -269,7 +265,6 @@ export const userUseCaseProviders: Provider[] = [
         users,
         uniquenessChecker,
         passwordHasher,
-        avatarUrlResolver,
         clock,
         transactional,
       ),
@@ -277,7 +272,6 @@ export const userUseCaseProviders: Provider[] = [
       USER_REPOSITORY,
       USER_UNIQUENESS_CHECKER,
       PASSWORD_HASHER,
-      AVATAR_URL_RESOLVER,
       CLOCK,
       TRANSACTIONAL,
     ],
@@ -288,7 +282,6 @@ export const userUseCaseProviders: Provider[] = [
       users: UserRepositoryPort,
       imageValidator: AvatarImageValidatorPort,
       uploader: AvatarUploaderPort,
-      avatarUrlResolver: AvatarUrlResolverPort,
       clock: ClockPort,
       transactional: TransactionalPort,
     ) =>
@@ -296,7 +289,6 @@ export const userUseCaseProviders: Provider[] = [
         users,
         imageValidator,
         uploader,
-        avatarUrlResolver,
         clock,
         transactional,
       ),
@@ -304,7 +296,6 @@ export const userUseCaseProviders: Provider[] = [
       USER_REPOSITORY,
       AVATAR_IMAGE_VALIDATOR,
       AVATAR_UPLOADER,
-      AVATAR_URL_RESOLVER,
       CLOCK,
       TRANSACTIONAL,
     ],
@@ -331,11 +322,13 @@ export const userUseCaseProviders: Provider[] = [
   },
   {
     provide: DisplayUserUseCase,
-    useFactory: (
-      users: UserRepositoryPort,
-      avatarUrlResolver: AvatarUrlResolverPort,
-    ) => new DisplayUserUseCase(users, avatarUrlResolver),
-    inject: [USER_REPOSITORY, AVATAR_URL_RESOLVER],
+    useFactory: (users: UserRepositoryPort) => new DisplayUserUseCase(users),
+    inject: [USER_REPOSITORY],
+  },
+  {
+    provide: ListUsersUseCase,
+    useFactory: (users: UserRepositoryPort) => new ListUsersUseCase(users),
+    inject: [USER_REPOSITORY],
   },
   {
     provide: CheckPasswordResetTokenUseCase,

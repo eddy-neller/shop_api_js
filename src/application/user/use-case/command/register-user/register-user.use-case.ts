@@ -3,8 +3,7 @@ import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
 import type { RegisterUserCommand } from "@/application/user/use-case/command/register-user/register-user.command";
-import type { UserReadModel } from "@/application/user/dto/user-read-model";
-import { toUserReadModel } from "@/application/user/dto/user-read-model.mapper";
+import { UserReadModel } from "@/application/user/dto/user-read-model";
 import type { PasswordHasherPort } from "@/application/user/port/password-hasher.port";
 import type { TokenProviderPort } from "@/application/user/port/token-provider.port";
 import type { UserUniquenessCheckerPort } from "@/application/user/port/user-uniqueness-checker.port";
@@ -60,7 +59,7 @@ export class RegisterUserUseCase {
 
       await this.users.save(user);
 
-      return toUserReadModel(user);
+      return UserReadModel.fromUser(user);
     });
   }
 }

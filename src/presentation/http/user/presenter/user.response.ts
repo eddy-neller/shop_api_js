@@ -1,4 +1,9 @@
-import type { UserReadModel } from '@/application/user/dto/user-read-model';
+import { Inject, Injectable } from "@nestjs/common";
+import {
+  AVATAR_URL_RESOLVER,
+  type AvatarUrlResolverPort,
+} from "@/application/user/port/avatar-url-resolver.port";
+import type { UserReadModel } from "@/application/user/dto/user-read-model";
 
 export type UserResponse = {
   id: string;
@@ -9,15 +14,21 @@ export type UserResponse = {
   updatedAt: string;
 };
 
+@Injectable()
 export class UserPresenter {
-  public static present(user: UserReadModel): UserResponse {
+  public constructor(
+    @Inject(AVATAR_URL_RESOLVER)
+    private readonly avatarUrlResolver: AvatarUrlResolverPort,
+  ) {}
+
+  public present(user: UserReadModel): UserResponse {
     return {
       id: user.id,
       email: user.email,
       roles: user.roles,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: this.avatarUrlResolver.resolve(user.avatarName),
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     };
   }
 }
