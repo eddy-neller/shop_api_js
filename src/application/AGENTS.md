@@ -6,10 +6,15 @@ Role: orchestration des cas d'usage.
 
 Contient:
 
-- Commands et Queries (`RegisterUserCommand`, `CreateUserByAdminCommand`, `UpdateUserByAdminCommand`, `UpdatePasswordCommand`, `DeleteUserByAdminCommand`, `DisplayUserQuery`, `CheckPasswordResetTokenQuery`).
-- Use cases (`RegisterUserUseCase`, `CreateUserByAdminUseCase`, `UpdateUserByAdminUseCase`, `UpdatePasswordUseCase`, `DeleteUserByAdminUseCase`, `DisplayUserUseCase`, `CheckPasswordResetTokenUseCase`).
-- Ports user (`UserRepositoryPort`, `PasswordHasherPort`, `IdGeneratorPort`, `TokenProviderPort`, `UserUniquenessCheckerPort`). `UserRepositoryPort` expose `delete(user)`; `PasswordHasherPort.verify` est requis (verification du mot de passe courant); `UserUniquenessCheckerPort` expose `ensureEmailAvailable`/`ensureUsernameAvailable` avec un `excludeUserId` optionnel pour les mises a jour.
-- Ports partages (`ClockPort`, `ConfigPort`, `TransactionalPort`) dans `src/application/shared/port`.
+- Use cases organises par capacite applicative:
+  - `auth`: connexion, deconnexion, rotation du refresh token.
+  - `onboarding`: inscription et activation du compte.
+  - `account`: compte courant, profil, mot de passe, avatar, reset password et securite du compte.
+  - `user-management`: administration des utilisateurs.
+- Commands et Queries dans la capacite qui les porte (`RegisterUserCommand` dans `onboarding`, `UpdatePasswordCommand` dans `account`, `CreateUserByAdminCommand` dans `user-management`, etc.).
+- DTOs/read models dans la capacite qui les expose quand ils sont specifiques (`AuthTokensReadModel` dans `auth`, `PasswordResetTokenCheckReadModel` dans `account`, `UserListReadModel` dans `user-management`).
+- Contrats partages dans `shared` quand plusieurs capacites en dependent: DTOs dans `shared/dto`, ports dans `shared/port`, services applicatifs dans `shared/service`.
+- Ports partages (`ClockPort`, `ConfigPort`, `TransactionalPort`, `IdGeneratorPort`, `PasswordHasherPort`, `TokenProviderPort`, `UserRepositoryPort`, `UserUniquenessCheckerPort`) dans `src/application/shared/port`.
 - Services applicatifs purs (`UserUniquenessChecker`) quand ils orchestrent plusieurs ports sans dependance technique.
 - Read models: classes avec une factory statique `from<Aggregate>(...)` faisant office de mapper (pas de fichier mapper separe).
 - Erreurs Domain/Application attendues (`UserNotFoundException`, exceptions d'unicite, erreurs de token, limites d'activation/reset, utilisateur bloque, `InvalidCurrentPasswordException`, `SamePasswordException`, `InvalidPreferencesException`, `InvalidUserStatusException`, `InvalidRoleException`).

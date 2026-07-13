@@ -5,8 +5,8 @@ import type { ConfigPort } from "@/application/shared/port/config.port";
 import type {
   AvatarFile,
   AvatarUploaderPort,
-} from "@/application/user/port/avatar-uploader.port";
-import type { UserId } from "@/domain/user/value-object/user-id";
+} from "@/application/account/port/avatar-uploader.port";
+import type { UserId } from "@/domain/user/value-object/identity/user-id";
 
 const DEFAULT_UPLOAD_DIR = "public/uploads/images/user/avatar";
 

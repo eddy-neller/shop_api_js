@@ -3,8 +3,8 @@ import { Injectable } from "@nestjs/common";
 import type {
   SplitToken,
   TokenProviderPort,
-} from "@/application/user/port/token-provider.port";
-import type { Email } from "@/domain/user/value-object/email";
+} from "@/application/shared/port/token-provider.port";
+import type { Email } from "@/domain/user/value-object/identity/email";
 
 const KEYSPACE =
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

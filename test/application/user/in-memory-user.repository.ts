@@ -2,11 +2,11 @@ import type {
   UserListCriteria,
   UserListResult,
   UserRepositoryPort,
-} from '@/application/user/port/user-repository.port';
+} from '@/application/shared/port/user-repository.port';
 import type { User } from '@/domain/user/model/user.aggregate';
-import type { Email } from '@/domain/user/value-object/email';
-import { UserId } from '@/domain/user/value-object/user-id';
-import type { Username } from '@/domain/user/value-object/username';
+import type { Email } from '@/domain/user/value-object/identity/email';
+import { UserId } from '@/domain/user/value-object/identity/user-id';
+import type { Username } from '@/domain/user/value-object/identity/username';
 
 export class InMemoryUserRepository implements UserRepositoryPort {
   private readonly users = new Map<string, User>();

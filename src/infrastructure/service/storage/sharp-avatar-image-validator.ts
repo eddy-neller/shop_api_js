@@ -1,10 +1,10 @@
 import sharp from "sharp";
 import type { ConfigPort } from "@/application/shared/port/config.port";
-import type { AvatarImageValidatorPort } from "@/application/user/port/avatar-image-validator.port";
-import type { AvatarFile } from "@/application/user/port/avatar-uploader.port";
-import { InvalidAvatarException } from "@/domain/user/exception/invalid-avatar.exception";
+import type { AvatarImageValidatorPort } from "@/application/account/port/avatar-image-validator.port";
+import type { AvatarFile } from "@/application/account/port/avatar-uploader.port";
+import { InvalidAvatarException } from "@/domain/user/exception/profile/invalid-avatar.exception";
 
-const DEFAULT_MAX_SIZE = 2_097_152; // 2 MiB
+const DEFAULT_MAX_SIZE = 2_097_152;
 const DEFAULT_MAX_DIMENSION = 512;
 
 const ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set([

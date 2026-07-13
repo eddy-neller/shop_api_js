@@ -15,9 +15,9 @@ export function writeHttpExceptionResponse(
   const status = httpException.getStatus();
 
   response.status(status).json({
-    statusCode: status,
-    error: httpException.name,
     message: httpException.message,
+    error: httpException.name,
+    statusCode: status,
   });
 }
 

@@ -17,7 +17,11 @@ Regles:
 - Infrastructure peut dependre de Domain, des ports Application, NestJS, Prisma et bibliotheques techniques.
 - Infrastructure ne depend pas de `src/presentation`.
 - Les handlers Nest CQRS adaptent `CommandBus`/`QueryBus` vers les use cases. Ils ne contiennent pas de logique metier.
-- Cablage DI centralise dans `src/infrastructure/nest/user/user.providers.ts`: c'est le seul endroit qui relie un token de port a son implementation. Aucun adapter ne porte `@Inject(...)`; les dependances sont toujours cablees cote provider.
+- Cablage DI Nest reparti par module de capacite dans `src/infrastructure/nest/modules/**/**.providers.ts`. `CoreModule` porte les providers partages; les modules `auth`, `onboarding`, `account` et `user-management` portent uniquement leurs controllers, handlers CQRS, use cases et adapters specifiques.
+  - Un module de capacite n'exporte rien: pas de propriete `exports` dans `*.module.ts`.
+  - Un module de capacite n'importe jamais un autre module de capacite. Il importe `CoreModule` uniquement; la composition entre capacites se fait au niveau `AppModule`.
+  - Tout provider consomme par plusieurs capacites ou par un mecanisme global (`APP_GUARD`, presenter partage, token transversal, resolver public commun) doit etre cable dans `CoreModule`.
+  - Aucun adapter ne porte `@Inject(...)`; les dependances sont toujours cablees cote provider.
   - Cabler via `useFactory` + `inject`, en passant les dependances au constructeur. C'est le defaut: idiomatique Clean Architecture + Nest, recommande par la communaute DDD/Nest, et seul moyen de resoudre un port reference par un token symbole (ex. `ID_GENERATOR`). L'adapter peut alors etre une classe pure sans `@Injectable()` (cf. `PrismaUserRepository`), instanciable a la main (`new Adapter(...)`) et testable sans Nest.
   - `useClass` reste possible pour un adapter dont toutes les dependances se resolvent par leur type concret (aucun token symbole en jeu). Dans ce cas l'adapter garde `@Injectable()`, car c'est Nest qui l'instancie et resout son constructeur par type (cf. `BcryptPasswordHasher`, `UuidGenerator`, `SystemClock`, `EnvConfig`).
   - La verbosite de `useFactory` est le prix assume du decouplage; confinee a ce fichier d'Infrastructure, elle ne pollue jamais Domain/Application.
@@ -52,7 +56,7 @@ Regles:
 
 Repository actuel:
 
-- `PrismaUserRepository.nextIdentity()` fabrique l'identite des nouveaux agregats: il recoit `IdGeneratorPort` en parametre constructeur et retourne un `UserId`. C'est le repository, pas le use case, qui porte la strategie d'identite. Le cablage (`PrismaService`, `PrismaTransactionContext`, `ID_GENERATOR`) se fait via `useFactory` + `inject` dans `user.providers.ts`; le repository ne porte pas de decorateur `@Inject`.
+- `PrismaUserRepository.nextIdentity()` fabrique l'identite des nouveaux agregats: il recoit `IdGeneratorPort` en parametre constructeur et retourne un `UserId`. C'est le repository, pas le use case, qui porte la strategie d'identite. Le cablage (`PrismaService`, `PrismaTransactionContext`, `ID_GENERATOR`) se fait via `useFactory` + `inject` dans `core.providers.ts`; le repository ne porte pas de decorateur `@Inject`.
 - `PrismaUserRepository.save` utilise `upsert`.
 - Les lectures `findById`, `findByEmail`, `findByUsername`, `findByActivationToken` et `findByResetPasswordToken` retournent `User | null`.
 - `UserMapper.toPersistence` retourne une entree Prisma create/update compatible; garder le mapping exhaustif et explicite.

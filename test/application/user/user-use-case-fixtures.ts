@@ -1,13 +1,18 @@
 import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
-import type { AvatarImageValidatorPort } from "@/application/user/port/avatar-image-validator.port";
-import type { AvatarUploaderPort } from "@/application/user/port/avatar-uploader.port";
-import type { AvatarUrlResolverPort } from "@/application/user/port/avatar-url-resolver.port";
-import type { PasswordHasherPort } from "@/application/user/port/password-hasher.port";
-import type { TokenProviderPort } from "@/application/user/port/token-provider.port";
-import { UserUniquenessChecker } from "@/application/user/service/user-uniqueness-checker";
-import { InvalidAvatarException } from "@/domain/user/exception/invalid-avatar.exception";
+import type { AccessTokenProviderPort } from "@/application/auth/port/access-token-provider.port";
+import type { AvatarImageValidatorPort } from "@/application/account/port/avatar-image-validator.port";
+import type { AvatarUploaderPort } from "@/application/account/port/avatar-uploader.port";
+import type { AvatarUrlResolverPort } from "@/application/account/port/avatar-url-resolver.port";
+import type { PasswordHasherPort } from "@/application/shared/port/password-hasher.port";
+import type { RefreshTokenHasherPort } from "@/application/auth/port/refresh-token-hasher.port";
+import type { TokenProviderPort } from "@/application/shared/port/token-provider.port";
+import { AuthTokenIssuer } from "@/application/auth/service/auth-token-issuer";
+import { UserUniquenessChecker } from "@/application/shared/service/user-uniqueness-checker";
+import { RefreshToken } from "@/domain/refresh-token/model/refresh-token.aggregate";
+import { InvalidAvatarException } from "@/domain/user/exception/profile/invalid-avatar.exception";
+import type { InMemoryRefreshTokenRepository } from "./in-memory-refresh-token.repository";
 import type { InMemoryUserRepository } from "./in-memory-user.repository";
 
 export const fixedNow = new Date("2026-06-22T12:00:00.000Z");
@@ -59,6 +64,42 @@ export function makeConfig(): ConfigPort {
   };
 }
 
+export function makeAccessTokenProvider(
+  token = "access-token",
+  expiresIn = 900,
+): AccessTokenProviderPort {
+  return {
+    issue: () => ({ token, expiresIn }),
+    verify: () => ({ sub: "", email: "", username: "", roles: [] }),
+  };
+}
+
+// Hash deterministe et prefixe: le hash reste distinct du secret brut tout en
+// restant reproductible, comme le fait le vrai adapter SHA-256.
+export function makeRefreshTokenHasher(): RefreshTokenHasherPort {
+  return {
+    hash: (rawToken) => `sha:${rawToken}`,
+  };
+}
+
+// Semer un refresh token dans un etat arbitraire (y compris expire) sans passer
+// par l'invariant "expire dans le futur" de RefreshToken.issue.
+export function makeRefreshToken(params: {
+  rawToken: string;
+  expiresAt: Date;
+  userId?: string;
+  id?: string;
+  createdAt?: Date;
+}): RefreshToken {
+  return RefreshToken.fromSnapshot({
+    id: params.id ?? "22222222-2222-4222-8222-222222222222",
+    userId: params.userId ?? "11111111-1111-4111-8111-111111111111",
+    tokenHash: makeRefreshTokenHasher().hash(params.rawToken),
+    expiresAt: params.expiresAt,
+    createdAt: params.createdAt ?? fixedNow,
+  });
+}
+
 export function makeTokenProvider(token = "raw-token"): TokenProviderPort {
   return {
     generateRandomToken: () => token,
@@ -77,6 +118,19 @@ export function makeUniquenessChecker(
   repository: InMemoryUserRepository,
 ): UserUniquenessChecker {
   return new UserUniquenessChecker(repository);
+}
+
+export function makeTokenIssuer(
+  refreshTokens: InMemoryRefreshTokenRepository,
+  rawRefreshToken = "refresh-token",
+): AuthTokenIssuer {
+  return new AuthTokenIssuer(
+    makeAccessTokenProvider(),
+    makeTokenProvider(rawRefreshToken),
+    makeRefreshTokenHasher(),
+    refreshTokens,
+    makeConfig(),
+  );
 }
 
 export function makeAvatarUrlResolver(

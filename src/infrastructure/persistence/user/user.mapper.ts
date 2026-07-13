@@ -1,9 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import { User } from '@/domain/user/model/user.aggregate';
-import type { ActiveEmailSnapshot } from '@/domain/user/value-object/active-email';
-import type { PreferencesSnapshot } from '@/domain/user/value-object/preferences';
-import type { ResetPasswordSnapshot } from '@/domain/user/value-object/reset-password';
-import type { SecuritySnapshot } from '@/domain/user/value-object/security';
+import type { ActiveEmailSnapshot } from '@/domain/user/value-object/identity/active-email';
+import type { PreferencesSnapshot } from '@/domain/user/value-object/profile/preferences';
+import type { ResetPasswordSnapshot } from '@/domain/user/value-object/security/reset-password';
+import type { SecuritySnapshot } from '@/domain/user/value-object/security/security';
 
 type PrismaUser = {
   id: string;

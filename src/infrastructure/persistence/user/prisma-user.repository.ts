@@ -1,14 +1,14 @@
-import { Prisma } from "@prisma/client";
-import type { IdGeneratorPort } from "@/application/user/port/id-generator.port";
+import type { Prisma } from "@prisma/client";
+import type { IdGeneratorPort } from "@/application/shared/port/id-generator.port";
 import type {
   UserListCriteria,
   UserListResult,
   UserRepositoryPort,
-} from "@/application/user/port/user-repository.port";
+} from "@/application/shared/port/user-repository.port";
 import type { User } from "@/domain/user/model/user.aggregate";
-import type { Email } from "@/domain/user/value-object/email";
-import { UserId } from "@/domain/user/value-object/user-id";
-import type { Username } from "@/domain/user/value-object/username";
+import type { Email } from "@/domain/user/value-object/identity/email";
+import { UserId } from "@/domain/user/value-object/identity/user-id";
+import type { Username } from "@/domain/user/value-object/identity/username";
 import type { PrismaService } from "@/infrastructure/persistence/prisma/prisma.service";
 import type { PrismaTransactionContext } from "@/infrastructure/persistence/prisma/transaction/prisma-transaction-context";
 import { UserMapper } from "@/infrastructure/persistence/user/user.mapper";
@@ -147,13 +147,6 @@ export class PrismaUserRepository implements UserRepositoryPort {
       totalItems,
       totalPages: Math.ceil(totalItems / criteria.itemsPerPage),
     };
-  }
-
-  public isUniqueConstraintError(error: unknown): boolean {
-    return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    );
   }
 
   private client(): Prisma.TransactionClient | PrismaService {

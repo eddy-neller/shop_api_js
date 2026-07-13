@@ -1,28 +1,31 @@
 import { BadRequestException } from "@nestjs/common";
-import type { HttpException } from "@nestjs/common";
+import type { ArgumentsHost, HttpException } from "@nestjs/common";
 import type { Response } from "express";
 import { describe, expect, it } from "vitest";
 import { DomainException } from "@/domain/shared/exception/domain-exception";
 import { InvalidUuidException } from "@/domain/shared/exception/invalid-uuid.exception";
-import { ActivationLimitReachedException } from "@/domain/user/exception/activation-limit-reached.exception";
-import { InvalidAvatarException } from "@/domain/user/exception/invalid-avatar.exception";
-import { InvalidCurrentPasswordException } from "@/domain/user/exception/invalid-current-password.exception";
-import { InvalidEmailException } from "@/domain/user/exception/invalid-email.exception";
-import { InvalidFirstnameException } from "@/domain/user/exception/invalid-firstname.exception";
-import { InvalidLastnameException } from "@/domain/user/exception/invalid-lastname.exception";
-import { InvalidPasswordHashException } from "@/domain/user/exception/invalid-password-hash.exception";
-import { InvalidPreferencesException } from "@/domain/user/exception/invalid-preferences.exception";
-import { InvalidRoleException } from "@/domain/user/exception/invalid-role.exception";
-import { InvalidUserStatusException } from "@/domain/user/exception/invalid-user-status.exception";
-import { ResetPasswordLimitReachedException } from "@/domain/user/exception/reset-password-limit-reached.exception";
-import { SamePasswordException } from "@/domain/user/exception/same-password.exception";
+import { ActivationLimitReachedException } from "@/domain/user/exception/rate-limit/activation-limit-reached.exception";
+import { InvalidAvatarException } from "@/domain/user/exception/profile/invalid-avatar.exception";
+import { InvalidCurrentPasswordException } from "@/domain/user/exception/security/invalid-current-password.exception";
+import { InvalidEmailException } from "@/domain/user/exception/identity/invalid-email.exception";
+import { InvalidFirstnameException } from "@/domain/user/exception/profile/invalid-firstname.exception";
+import { InvalidLastnameException } from "@/domain/user/exception/profile/invalid-lastname.exception";
+import { InvalidPasswordHashException } from "@/domain/user/exception/security/invalid-password-hash.exception";
+import { InvalidPreferencesException } from "@/domain/user/exception/profile/invalid-preferences.exception";
+import { InvalidRoleException } from "@/domain/user/exception/access/invalid-role.exception";
+import { InvalidUserStatusException } from "@/domain/user/exception/lifecycle/invalid-user-status.exception";
+import { ResetPasswordLimitReachedException } from "@/domain/user/exception/rate-limit/reset-password-limit-reached.exception";
+import { SamePasswordException } from "@/domain/user/exception/security/same-password.exception";
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
 import { UsernameAlreadyUsedException } from "@/domain/user/exception/uniqueness/username-already-used.exception";
 import { UserDomainException } from "@/domain/user/exception/user-domain-exception";
-import { UserLockedException } from "@/domain/user/exception/user-locked.exception";
+import { UserLockedException } from "@/domain/user/exception/security/user-locked.exception";
 import { UserNotFoundException } from "@/domain/user/exception/user-not-found.exception";
-import { writeHttpExceptionResponse } from "@/presentation/http/shared/filter/domain-exception.filter";
-import { toUserHttpException } from "@/presentation/http/user/filter/user-domain-exception.filter";
+import {
+  DomainExceptionFilter,
+  writeHttpExceptionResponse,
+} from "@/presentation/http/shared/filter/domain-exception.filter";
+import { toUserHttpException } from "@/presentation/http/shared/filter/user-domain-exception.filter";
 
 type HttpResponseBody = {
   readonly statusCode: number;
@@ -139,6 +142,32 @@ describe("toUserHttpException", () => {
       expect(httpException.getStatus()).toBe(expectedStatus);
       expect(httpException.name).toBe(expectedName);
       expect(httpException.message).toBe(exception.message);
+    },
+  );
+});
+
+describe("DomainExceptionFilter (global fallback)", () => {
+  const filterHostFor = (response: FakeResponse): ArgumentsHost =>
+    ({
+      switchToHttp: () => ({ getResponse: () => response }),
+    }) as unknown as ArgumentsHost;
+
+  it.each([
+    [new UnknownDomainException()],
+    [new UserDomainException("Unhandled domain rule.")],
+  ])(
+    "renders any unhandled DomainException as a clean 400 (%s)",
+    (exception) => {
+      const response = new FakeResponse();
+
+      new DomainExceptionFilter().catch(exception, filterHostFor(response));
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({
+        statusCode: 400,
+        error: "BadRequestException",
+        message: exception.message,
+      });
     },
   );
 });

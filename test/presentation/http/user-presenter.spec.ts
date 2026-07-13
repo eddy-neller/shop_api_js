@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { UserReadModel } from "@/application/user/dto/user-read-model";
-import type { AvatarUrlResolverPort } from "@/application/user/port/avatar-url-resolver.port";
-import { UserPresenter } from "@/presentation/http/user/presenter/user.response";
-import { UserListPresenter } from "@/presentation/http/user/presenter/user-list.response";
+import { UserReadModel } from "@/application/shared/dto/user-read-model";
+import type { AvatarUrlResolverPort } from "@/application/account/port/avatar-url-resolver.port";
+import { UserPresenter } from "@/presentation/http/shared/presenter/user.response";
+import { UserListPresenter } from "@/presentation/http/user-management/presenter/user-list.response";
 
 const resolver: AvatarUrlResolverPort = {
   resolve: (avatarName) =>

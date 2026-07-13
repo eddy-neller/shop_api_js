@@ -21,6 +21,11 @@ Regles:
 - Un presenter injectable peut dependre d'un **port Application** (en plus des read models/DTOs): c'est autorise (la Presentation peut dependre de l'Application; cf. presenter de reference cote `../api/`).
 - Les filtres convertissent les exceptions Domain/Application connues en reponses HTTP stables.
 - Quand une nouvelle erreur Domain/Application peut remonter a l'API, l'ajouter au mapping du filtre concerne.
+
+Mapping des exceptions metier (deux niveaux):
+
+- **Mapping fin, par controller**: `UserDomainExceptionFilter` (`@UseFilters` sur chaque controller) traduit chaque exception `UserDomainException` / `InvalidUuidException` vers son status HTTP precis (409, 404, 422, 423, 429, 401, 403...). C'est ici qu'on ajoute une nouvelle correspondance quand une erreur metier remonte a l'API.
+- **Filet de securite global**: `DomainExceptionFilter` est enregistre en `APP_FILTER` (cf. `CoreModule`) et catche `DomainException` (la base). Nest resout du scope le plus proche au plus large (methode -> controller -> global): le filtre global n'intervient donc **qu'en rattrapage**, pour une `DomainException` qu'aucun filtre plus proche n'a traitee (ex: controller sans `@UseFilters`). Il rend un `400` propre au lieu de laisser fuiter un `500`. Ce n'est pas l'endroit ou l'on affine un status: il reste volontairement generique.
 - Garder la validation globale de `src/main.ts`: `whitelist`, `forbidNonWhitelisted`, `transform`.
 
 Ordre des routes:
@@ -30,21 +35,39 @@ Ordre des routes:
 - Exemple: `@Post("register")`, `@Post("reset-password/...")` doivent precede `@Post(":id/avatar")`. Idem `@Get()` avant `@Get(":id")`.
 - Cette regle s'applique segment par segment, mais ne pas se reposer sur un mismatch de nombre de segments ou de litteral pour eviter une collision: respecter l'ordre statique -> parametre reste la garantie robuste.
 
-Routes actuelles:
+Authentification:
+
+- JWT d'acces (HS256) + refresh token persiste a usage unique (rotation). Voir `src/application/auth/use-case/command/{login,refresh-token,logout}` et `src/infrastructure/service/token/jwt-access-token-provider.ts`.
+- Securise par defaut: `JwtAuthGuard` et `RolesGuard` globaux (`APP_GUARD`, cf. `CoreModule`). Une route est ouverte uniquement si elle porte `@Public()`; une route admin porte `@Roles(UserRole.Admin)` (hierarchie de roles appliquee par `RolesGuard`).
+- `@CurrentUser()` injecte le principal (`AuthenticatedUser { id, email, username, roles }`) issu des claims du JWT. Les routes `/users/me/*` derivent toujours l'id cible du token, jamais de l'URL.
+
+Routes auth (`AuthController`, `@Public` sauf invalidate):
+
+- `POST /auth/login` avec `LoginRequest`, reponse `{ accessToken, refreshToken, tokenType, expiresIn }` (`200`).
+- `POST /auth/token/refresh` avec `RefreshTokenRequest`, meme reponse (rotation du refresh token).
+- `POST /auth/token/invalidate` (authentifie) avec `LogoutRequest`, reponse `204` (revoque le refresh token, idempotent).
+
+Routes publiques (`@Public`):
 
 - `POST /users/register` avec `RegisterUserRequest`.
 - `POST /users/register/email-activation-request` avec `RequestActivationEmailRequest`, reponse `204`.
 - `POST /users/register/validation` avec `ValidateActivationRequest`, reponse `204`.
 - `POST /users/reset-password/request` avec `RequestPasswordResetRequest`, reponse `204`.
+- `POST /users/reset-password/check` avec `CheckPasswordResetTokenRequest`, reponse `{ isValid: boolean }`.
 - `POST /users/reset-password/confirm` avec `ConfirmPasswordResetRequest`, reponse `204`.
+
+Routes du compte courant (`MeController`, authentifiees):
+
+- `GET /users/me`, reponse `UserResponse`.
+- `PATCH /users/me/password` avec `UpdatePasswordRequest`, reponse `204`.
+- `POST /users/me/avatar` en `multipart/form-data` (champ `avatarFile`), reponse `UserResponse` avec `avatarUrl`.
+
+Routes admin (`UserManagementController`, `@Roles(UserRole.Admin)`):
+
+- `GET /users` (liste paginee).
 - `GET /users/:id` avec `DisplayUserQuery`.
 - `POST /users` avec `CreateUserByAdminRequest`.
 - `PATCH /users/:id` avec `UpdateUserByAdminRequest`.
-- `PATCH /users/:id/password` avec `UpdatePasswordRequest`, reponse `204`.
-- `POST /users/:id/avatar` en `multipart/form-data` (champ `avatarFile`), reponse `UserResponse` avec `avatarUrl`.
 - `DELETE /users/:id`, reponse `204`.
-- `POST /users/reset-password/check` avec `CheckPasswordResetTokenRequest`, reponse `{ isValid: boolean }`.
-
-POC: les routes admin/owner (`POST /users`, `PATCH /users/:id`, `PATCH /users/:id/password`, `POST /users/:id/avatar`, `DELETE /users/:id`) sont exposees sans authentification/autorisation pour l'instant. Quand l'auth (JWT, garde admin, contexte `/me`) sera ajoutee, les proteger et introduire les variantes `/users/me/*` en mirror de l'API principale `../api/`.
 
 Attention: les ids User sont des UUID. Toute validation de parametre `id` doit etre compatible UUID.

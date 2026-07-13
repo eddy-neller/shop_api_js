@@ -1,44 +1,44 @@
 import type { DomainEvent } from "@/domain/shared/event/domain-event";
-import { ActivationEmailRequestedEvent } from "@/domain/user/event/activation-email-requested.event";
-import { PasswordResetCompletedEvent } from "@/domain/user/event/password-reset-completed.event";
-import { PasswordResetRequestedEvent } from "@/domain/user/event/password-reset-requested.event";
-import { UserActivatedEvent } from "@/domain/user/event/user-activated.event";
-import { UserAvatarUpdatedEvent } from "@/domain/user/event/user-avatar-updated.event";
-import { UserRegisteredEvent } from "@/domain/user/event/user-registered.event";
-import { UserWrongPasswordAttemptRegisteredEvent } from "@/domain/user/event/user-wrong-password-attempt-registered.event";
-import { UserWrongPasswordAttemptsResetEvent } from "@/domain/user/event/user-wrong-password-attempts-reset.event";
-import { UserCreatedByAdminEvent } from "@/domain/user/event/user-created-by-admin.event";
-import { UserDeletedByAdminEvent } from "@/domain/user/event/user-deleted-by-admin.event";
-import { UserPasswordUpdatedEvent } from "@/domain/user/event/user-password-updated.event";
-import { UserUpdatedByAdminEvent } from "@/domain/user/event/user-updated-by-admin.event";
-import { ActivationLimitReachedException } from "@/domain/user/exception/activation-limit-reached.exception";
-import { ResetPasswordLimitReachedException } from "@/domain/user/exception/reset-password-limit-reached.exception";
+import { ActivationEmailRequestedEvent } from "@/domain/user/event/lifecycle/activation-email-requested.event";
+import { PasswordResetCompletedEvent } from "@/domain/user/event/security/password-reset-completed.event";
+import { PasswordResetRequestedEvent } from "@/domain/user/event/security/password-reset-requested.event";
+import { UserActivatedEvent } from "@/domain/user/event/lifecycle/user-activated.event";
+import { UserAvatarUpdatedEvent } from "@/domain/user/event/profile/user-avatar-updated.event";
+import { UserRegisteredEvent } from "@/domain/user/event/lifecycle/user-registered.event";
+import { UserWrongPasswordAttemptRegisteredEvent } from "@/domain/user/event/security/user-wrong-password-attempt-registered.event";
+import { UserWrongPasswordAttemptsResetEvent } from "@/domain/user/event/security/user-wrong-password-attempts-reset.event";
+import { UserCreatedByAdminEvent } from "@/domain/user/event/management/user-created-by-admin.event";
+import { UserDeletedByAdminEvent } from "@/domain/user/event/management/user-deleted-by-admin.event";
+import { UserPasswordUpdatedEvent } from "@/domain/user/event/security/user-password-updated.event";
+import { UserUpdatedByAdminEvent } from "@/domain/user/event/management/user-updated-by-admin.event";
+import { ActivationLimitReachedException } from "@/domain/user/exception/rate-limit/activation-limit-reached.exception";
+import { ResetPasswordLimitReachedException } from "@/domain/user/exception/rate-limit/reset-password-limit-reached.exception";
 import { UserDomainException } from "@/domain/user/exception/user-domain-exception";
-import { UserLockedException } from "@/domain/user/exception/user-locked.exception";
+import { UserLockedException } from "@/domain/user/exception/security/user-locked.exception";
 import {
   ActiveEmail,
   type ActiveEmailSnapshot,
-} from "@/domain/user/value-object/active-email";
-import { Email } from "@/domain/user/value-object/email";
-import type { Firstname } from "@/domain/user/value-object/firstname";
-import type { Lastname } from "@/domain/user/value-object/lastname";
-import { PasswordHash } from "@/domain/user/value-object/password-hash";
+} from "@/domain/user/value-object/identity/active-email";
+import { Email } from "@/domain/user/value-object/identity/email";
+import { Firstname } from "@/domain/user/value-object/profile/firstname";
+import { Lastname } from "@/domain/user/value-object/profile/lastname";
+import { PasswordHash } from "@/domain/user/value-object/security/password-hash";
 import {
   Preferences,
   type PreferencesSnapshot,
-} from "@/domain/user/value-object/preferences";
+} from "@/domain/user/value-object/profile/preferences";
 import {
   ResetPassword,
   type ResetPasswordSnapshot,
-} from "@/domain/user/value-object/reset-password";
+} from "@/domain/user/value-object/security/reset-password";
 import {
   Security,
   type SecuritySnapshot,
-} from "@/domain/user/value-object/security";
-import { UserId } from "@/domain/user/value-object/user-id";
-import { UserRole } from "@/domain/user/value-object/user-role";
-import { UserStatus } from "@/domain/user/value-object/user-status";
-import { Username } from "@/domain/user/value-object/username";
+} from "@/domain/user/value-object/security/security";
+import { UserId } from "@/domain/user/value-object/identity/user-id";
+import { UserRole } from "@/domain/user/value-object/access/user-role";
+import { UserStatus } from "@/domain/user/value-object/lifecycle/user-status";
+import { Username } from "@/domain/user/value-object/identity/username";
 
 const MAX_TOKEN_REQUESTS = 3;
 
@@ -67,8 +67,8 @@ export class User {
 
   private constructor(
     private readonly id: UserId,
-    private firstname: string | null,
-    private lastname: string | null,
+    private firstname: Firstname | null,
+    private lastname: Lastname | null,
     private username: Username,
     private email: Email,
     private passwordHash: PasswordHash,
@@ -134,8 +134,8 @@ export class User {
   }): User {
     const user = new User(
       params.id,
-      params.firstname?.toString() ?? null,
-      params.lastname?.toString() ?? null,
+      params.firstname ?? null,
+      params.lastname ?? null,
       params.username,
       params.email,
       params.passwordHash,
@@ -162,8 +162,8 @@ export class User {
   public static fromSnapshot(snapshot: UserSnapshot): User {
     return new User(
       UserId.fromString(snapshot.id),
-      snapshot.firstname,
-      snapshot.lastname,
+      snapshot.firstname === null ? null : Firstname.fromString(snapshot.firstname),
+      snapshot.lastname === null ? null : Lastname.fromString(snapshot.lastname),
       Username.fromString(snapshot.username),
       Email.fromString(snapshot.email),
       PasswordHash.fromString(snapshot.passwordHash),
@@ -179,6 +179,28 @@ export class User {
       snapshot.createdAt,
       snapshot.updatedAt,
     );
+  }
+
+  public toSnapshot(): UserSnapshot {
+    return {
+      id: this.id.toString(),
+      firstname: this.firstname?.toString() ?? null,
+      lastname: this.lastname?.toString() ?? null,
+      username: this.username.toString(),
+      email: this.email.toString(),
+      passwordHash: this.passwordHash.toString(),
+      roles: [...this.roles],
+      status: this.status.toNumber(),
+      security: this.security.toObject(),
+      activeEmail: this.activeEmail.toObject(),
+      resetPassword: this.resetPassword.toObject(),
+      preferences: this.preferences.toObject(),
+      avatarName: this.avatarName,
+      lastVisit: this.lastVisit,
+      nbLogin: this.nbLogin,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 
   public requestActivation(token: string, expiresAt: Date, now: Date): void {
@@ -272,6 +294,26 @@ export class User {
     this.events.push(new UserWrongPasswordAttemptsResetEvent(this.id, now));
   }
 
+  public changePassword(passwordHash: PasswordHash, now: Date): void {
+    this.passwordHash = passwordHash;
+    this.touch(now);
+
+    this.events.push(new UserPasswordUpdatedEvent(this.id, now));
+  }
+
+  public recordSuccessfulLogin(now: Date): void {
+    this.nbLogin += 1;
+    this.lastVisit = now;
+    this.touch(now);
+  }
+
+  public updateAvatar(avatarName: string, now: Date): void {
+    this.avatarName = avatarName;
+    this.touch(now);
+
+    this.events.push(new UserAvatarUpdatedEvent(this.id, now));
+  }
+
   public updateByAdmin(params: {
     now: Date;
     username: Username | null;
@@ -295,12 +337,12 @@ export class User {
     }
 
     if (params.firstname !== null) {
-      this.firstname = params.firstname.toString();
+      this.firstname = params.firstname;
       hasChanges = true;
     }
 
     if (params.lastname !== null) {
-      this.lastname = params.lastname.toString();
+      this.lastname = params.lastname;
       hasChanges = true;
     }
 
@@ -327,20 +369,6 @@ export class User {
     this.events.push(new UserUpdatedByAdminEvent(this.id, params.now));
   }
 
-  public changePassword(passwordHash: PasswordHash, now: Date): void {
-    this.passwordHash = passwordHash;
-    this.touch(now);
-
-    this.events.push(new UserPasswordUpdatedEvent(this.id, now));
-  }
-
-  public updateAvatar(avatarName: string, now: Date): void {
-    this.avatarName = avatarName;
-    this.touch(now);
-
-    this.events.push(new UserAvatarUpdatedEvent(this.id, now));
-  }
-
   public deleteByAdmin(now: Date): void {
     this.events.push(new UserDeletedByAdminEvent(this.id, now));
   }
@@ -361,11 +389,11 @@ export class User {
     return this.id;
   }
 
-  public getFirstname(): string | null {
+  public getFirstname(): Firstname | null {
     return this.firstname;
   }
 
-  public getLastname(): string | null {
+  public getLastname(): Lastname | null {
     return this.lastname;
   }
 
@@ -399,28 +427,6 @@ export class User {
 
   public getUpdatedAt(): Date {
     return this.updatedAt;
-  }
-
-  public toSnapshot(): UserSnapshot {
-    return {
-      id: this.id.toString(),
-      firstname: this.firstname,
-      lastname: this.lastname,
-      username: this.username.toString(),
-      email: this.email.toString(),
-      passwordHash: this.passwordHash.toString(),
-      roles: [...this.roles],
-      status: this.status.toNumber(),
-      security: this.security.toObject(),
-      activeEmail: this.activeEmail.toObject(),
-      resetPassword: this.resetPassword.toObject(),
-      preferences: this.preferences.toObject(),
-      avatarName: this.avatarName,
-      lastVisit: this.lastVisit,
-      nbLogin: this.nbLogin,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
-    };
   }
 
   private touch(now: Date): void {

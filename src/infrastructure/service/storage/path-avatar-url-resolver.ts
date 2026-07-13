@@ -1,5 +1,5 @@
 import type { ConfigPort } from "@/application/shared/port/config.port";
-import type { AvatarUrlResolverPort } from "@/application/user/port/avatar-url-resolver.port";
+import type { AvatarUrlResolverPort } from "@/application/account/port/avatar-url-resolver.port";
 
 const DEFAULT_BASE_URL = "/uploads/images/user/avatar";
 

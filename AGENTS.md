@@ -1,16 +1,32 @@
 # AGENTS.md
 
-Guide pour humains et agents travaillant sur ce depot. Objectif: garder une API NestJS lisible, testable, orientee metier, et coherente avec l'API principale du projet E.N Shop.
+Guide pour humains et agents travaillant sur ce depot. Objectif: garder une API NestJS lisible, testable, orientee metier, et coherente avec les regles metier du projet E.N Shop.
 
-Ce projet est l'API secondaire TypeScript de l'application E.N Shop.
+## Perimetre du projet
 
-L'API principale (PHP / Symfony / API Platform, Clean Architecture + DDD) est accessible depuis `../api/`. Elle sert de reference fonctionnelle et architecturale: les use cases, le modele (User, Shop à l'avenir), les ports et les regles metier de ce projet doivent rester coherents avec elle. Consulter `../api/` (notamment `application/src/`, `domain/**/src`, `presentation/src/`) avant d'ajouter ou de modifier un comportement métier.
+Ce projet est le **microservice Identity** (`identity-service`) de l'application E.N Shop. C'est un service autonome, proprietaire de ses donnees et de ses regles, qui porte **uniquement** le contexte metier de l'identite:
 
-L'API principale est une reference, pas un dogme. Si une implementation de `../api/` n'est pas la meilleure solution dans ce projet (choix discutable, heritage technique, contrainte propre a Symfony/API Platform sans equivalent pertinent en NestJS), le signaler explicitement plutot que de la cloner par souci de parite. Distinguer la coherence metier/architecturale (a preserver) de la copie d'un detail de transport ou de validation (a questionner). Proposer alors la meilleure solution et laisser la decision a l'humain.
+- inscription utilisateur
+- activation de compte
+- authentification (login, JWT d'acces, refresh tokens)
+- reset de mot de passe
+- profil utilisateur et avatar
+- regles de securite du compte (tentatives de login, blocage, etc.)
+
+L'agregat central est **User**. Le contexte Identity porte aussi un agregat de support, **RefreshToken** (session d'authentification: emission, expiration, rotation, revocation), qui reference `User` par identite (`UserId`), jamais par objet. Ajouter un agregat de support dans le **meme** bounded context Identity est autorise; ce qui est interdit, c'est d'ouvrir un **nouveau bounded context** metier ici. Les autres domaines (Shop, notifications, catalogue, commandes, paiement...) **ne vivent pas dans ce depot**: ce sont des microservices distincts, avec leur propre base et leurs propres contrats. Il ne faut donc **pas** ajouter de nouveau bounded context metier ici (pas de `domain/shop`, etc.); on etend le contexte Identity, ou on cree/alimente un autre service. Voir `docs/architecture/microservices-roadmap.md` pour la cible microservices et les evenements publies par ce service.
+
+## Reference metier: l'API Symfony
+
+L'API principale (PHP / Symfony / API Platform, Clean Architecture + DDD, dans `../api/`) est la **reference fonctionnelle et metier** pour le domaine Identity: les use cases, le modele User, les regles metier et les invariants de ce projet doivent rester coherents avec elle. Consulter `../api/` (notamment `application/src/`, `domain/**/src`, `presentation/src/`) avant d'ajouter ou de modifier un comportement metier de l'identite.
+
+**Reference metier, pas modele architectural.** `../api/` est un monolithe Symfony; ce projet est un microservice NestJS. La coherence attendue porte sur le **metier** (regles, invariants, comportements du User), pas sur la structure technique. Il est normal — et souhaite — de diverger de `../api/` sur tout ce qui releve de l'architecture microservice: perimetre reduit a l'identite, base de donnees possedee par le service, publication d'evenements (`UserRegistered`, `PasswordResetRequested`...), outbox transactionnel, absence de tables partagees, contrats explicites avec les autres services. Ne pas cloner un decoupage, un detail de transport ou de validation par simple souci de parite.
+
+Regle de decision: si une implementation de `../api/` n'est pas la meilleure solution ici (choix discutable, heritage technique, contrainte propre a Symfony/API Platform, ou logique qui appartient a un autre microservice), le signaler explicitement, proposer la meilleure solution pour un service Identity autonome, et laisser la decision a l'humain.
 
 > **Ne consigner ici que des regles transverses et des resumes.** Toute regle specifique a une couche doit etre ecrite — en detail — dans le `AGENTS.md` de cette couche, jamais dans ce fichier.
 >
 > **Regles specifiques a une couche** → fichier `AGENTS.md` du dossier correspondant (charge a la demande quand on travaille dans cette couche) :
+>
 > - [`src/domain/AGENTS.md`](src/domain/AGENTS.md) — DDD, agregats, Value Objects, events, exceptions metier
 > - [`src/application/AGENTS.md`](src/application/AGENTS.md) — use cases, CQRS, commands/queries, ports, read models
 > - [`src/infrastructure/AGENTS.md`](src/infrastructure/AGENTS.md) — adapters, handlers CQRS, Prisma, mappers, persistance
@@ -74,6 +90,9 @@ Voir `.env.example`.
 - `REGISTER_TOKEN_TTL`: duree ISO-8601 du token d'activation, defaut code `P2D`.
 - `RESET_PASSWORD_TOKEN_TTL`: duree ISO-8601 du token de reset password, defaut code `PT15M`.
 - `MAX_LOGIN_ATTEMPTS`: nombre d'echecs de mot de passe avant blocage, defaut code `5`.
+- `JWT_SECRET`: secret de signature des JWT d'acces (HS256). Obligatoire en runtime; aucune valeur par defaut.
+- `JWT_ACCESS_TTL`: duree ISO-8601 de validite du JWT d'acces, defaut code `PT15M`.
+- `JWT_REFRESH_TTL`: duree ISO-8601 de validite du refresh token, defaut code `P30D`.
 - `AVATAR_UPLOAD_DIR`: repertoire de stockage disque des avatars, defaut code `public/uploads/images/user/avatar`.
 - `AVATAR_BASE_URL`: prefixe d'URL publique servant les avatars, defaut code `/uploads/images/user/avatar`.
 - `AVATAR_MAX_SIZE`: taille max d'un avatar en octets, defaut code `2097152` (2 Mo).
@@ -117,25 +136,48 @@ Le detail des regles de chaque couche vit dans son `AGENTS.md` dedie (voir les l
 src/
   domain/
     shared/
+    refresh-token/
+      exception/
+      model/
+      value-object/
     user/
       event/
       exception/
       model/
       value-object/
   application/
+    account/
+      use-case/
+        command/
+        query/
+    auth/
+      use-case/
+        command/
+    onboarding/
+      use-case/
+        command/
     shared/
-      port/
-    user/
       dto/
       port/
       service/
+    user-management/
+      dto/
       use-case/
         command/
         query/
   infrastructure/
     nest/
       cqrs/
-      user/
+        account/
+        auth/
+        onboarding/
+        user-management/
+      modules/
+        account/
+        auth/
+        core/
+        onboarding/
+        user-management/
     persistence/
       prisma/
         transaction/
@@ -148,8 +190,11 @@ src/
       token/
   presentation/
     http/
+      account/
+      auth/
+      onboarding/
       shared/
-      user/
+      user-management/
 prisma/
   migrations/
   seed/
@@ -158,7 +203,7 @@ test/
   application/
 ```
 
-Conserver cette organisation par bounded context. Si un nouveau domaine apparait, reproduire la meme separation par couche.
+Conserver cette organisation par couche autour des agregats du contexte Identity de ce service (**User**, agregat central, et **RefreshToken**, agregat de support). Un nouveau besoin metier hors du perimetre Identity (Shop, notifications, catalogue...) n'ouvre pas un nouveau bounded context ici: il releve d'un autre microservice (voir `docs/architecture/microservices-roadmap.md`). Ce qui evolue dans ce depot etend le contexte Identity.
 
 ---
 

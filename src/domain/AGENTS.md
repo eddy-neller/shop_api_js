@@ -11,6 +11,45 @@ Contient:
 - Domain Events dans `event/`.
 - Exceptions metier dans `exception/`.
 
+## `shared/` vs agregats (`user/`, `refresh-token/`)
+
+Ce service porte le bounded context **Identity** (voir `AGENTS.md` racine), avec un
+dossier **par agregat** a la racine de `domain/` :
+
+- `user/` : l'agregat central (User, ses VOs, events, exceptions).
+- `refresh-token/` : l'agregat de support RefreshToken (session d'authentification),
+  qui reference User par identite (`UserId`) et porte son propre cycle de vie
+  (`issue`, `isExpired`, revocation). Le secret brut n'est jamais stocke : l'agregat
+  ne detient que son empreinte (`RefreshTokenHash`), calculee via un port de hachage.
+- `shared/` : les **briques de base** de la couche Domain, agnostiques de l'agregat
+  (`DomainException` base de toutes les exceptions metier, `DomainEvent` contrat de
+  tous les events, `InvalidUuidException` sur un concept UUID generique).
+
+Critere pour placer un nouveau fichier : *« ce concept parle-t-il d'un agregat precis,
+ou du vocabulaire commun de la couche Domain ? »*. Reponse « un agregat » → dossier de
+cet agregat ; reponse « commun / base technique du domaine » → `shared/`. Ne pas fondre
+`shared/` dans un agregat : cela attribuerait a cet agregat des concepts qui ne lui
+appartiennent pas, et
+casserait le polymorphisme sur lequel s'appuient le filtre HTTP (`DomainException`)
+et la publication d'events (`DomainEvent`).
+
+## Organisation par bounded context et par concern
+
+A l'interieur de `user/`, les gros dossiers (`value-object/`, `event/`, `exception/`)
+sont sous-groupes par **concern** :
+
+- `value-object/` : `identity/` (email, user-id, username), `profile/` (firstname,
+  lastname, preferences), `security/` (password-hash, reset-password, security),
+  `access/` (user-role), `lifecycle/` (user-status).
+- `event/` : `lifecycle/`, `security/`, `profile/`, `management/` (actions admin).
+- `exception/` : `identity/`, `profile/`, `security/`, `access/`, `lifecycle/`,
+  `rate-limit/`, `uniqueness/`. Les exceptions transverses (`user-domain-exception`
+  base, `user-not-found`) restent a la racine de `exception/`.
+
+Nouveau fichier : le placer dans le sous-dossier de concern adequat. Un nouveau
+sous-dossier de concern est justifie quand un groupe coherent emerge ; ne pas creer
+de sous-dossier pour un seul fichier isole.
+
 Regles:
 
 - Aucune dependance vers Application, Infrastructure ou Presentation.

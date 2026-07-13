@@ -1,8 +1,8 @@
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { describe, expect, it } from "vitest";
-import { RegisterUserRequest } from "@/presentation/http/user/dto/register-user.request";
-import { UpdatePasswordRequest } from "@/presentation/http/user/dto/update-password.request";
+import { UpdatePasswordRequest } from "@/presentation/http/account/dto/update-password.request";
+import { RegisterUserRequest } from "@/presentation/http/onboarding/dto/register-user.request";
 
 const VALIDATION_OPTIONS = {
   whitelist: true,
