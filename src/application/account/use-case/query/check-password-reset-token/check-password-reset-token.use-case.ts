@@ -31,21 +31,19 @@ export class CheckPasswordResetTokenUseCase {
       return { isValid: false };
     }
 
-    const snapshot = user.toSnapshot();
-
-    if (snapshot.email !== email.toString()) {
+    if (!user.getEmail().equals(email)) {
       return { isValid: false };
     }
 
-    const resetPassword = snapshot.resetPassword;
-    const ttl = resetPassword.tokenTtl ?? 0;
+    const resetPassword = user.getResetPassword();
+    const ttl = resetPassword.getTokenTtl() ?? 0;
     const nowSeconds = Math.floor(this.clock.now().getTime() / 1000);
 
     if (ttl <= 0 || ttl <= nowSeconds) {
       return { isValid: false };
     }
 
-    if (resetPassword.token !== rawToken) {
+    if (resetPassword.getToken() !== rawToken) {
       return { isValid: false };
     }
 

@@ -25,7 +25,7 @@ export class UpdatePasswordUseCase {
       throw new UserNotFoundException(command.userId);
     }
 
-    const currentPasswordHash = user.toSnapshot().passwordHash;
+    const currentPasswordHash = user.getPasswordHash().toString();
 
     const isCurrentPasswordValid = await this.passwordHasher.verify(
       currentPasswordHash,

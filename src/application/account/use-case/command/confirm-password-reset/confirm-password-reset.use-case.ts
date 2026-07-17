@@ -23,7 +23,7 @@ export class ConfirmPasswordResetUseCase {
     const rawToken = split.token ?? "";
     const user = await this.users.findByResetPasswordToken(rawToken);
 
-    if (user === null || user.toSnapshot().email !== email.toString()) {
+    if (user === null || !user.getEmail().equals(email)) {
       throw new UserDomainException("Password reset token is invalid.");
     }
 

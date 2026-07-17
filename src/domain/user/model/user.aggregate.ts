@@ -405,6 +405,14 @@ export class User {
     return this.email;
   }
 
+  public getPasswordHash(): PasswordHash {
+    return this.passwordHash;
+  }
+
+  public getResetPassword(): ResetPassword {
+    return this.resetPassword;
+  }
+
   public getRoles(): string[] {
     return [...this.roles];
   }

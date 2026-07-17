@@ -20,7 +20,7 @@ export class ValidateActivationUseCase {
     const rawToken = split.token ?? "";
     const user = await this.users.findByActivationToken(rawToken);
 
-    if (user === null || user.toSnapshot().email !== email.toString()) {
+    if (user === null || !user.getEmail().equals(email)) {
       throw new UserNotFoundException("User not found for this token.");
     }
 

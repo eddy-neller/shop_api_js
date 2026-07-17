@@ -38,7 +38,7 @@ export class LoginUseCase {
       }
 
       const passwordValid = await this.passwordHasher.verify(
-        user.toSnapshot().passwordHash,
+        user.getPasswordHash().toString(),
         command.plainPassword,
       );
 

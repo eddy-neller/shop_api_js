@@ -36,7 +36,7 @@ export class UserUniquenessChecker implements UserUniquenessCheckerPort {
 
     if (
       excludeUserId !== undefined &&
-      existing.toSnapshot().id === excludeUserId.toString()
+      existing.getId().equals(excludeUserId)
     ) {
       return;
     }
@@ -56,7 +56,7 @@ export class UserUniquenessChecker implements UserUniquenessCheckerPort {
 
     if (
       excludeUserId !== undefined &&
-      existing.toSnapshot().id === excludeUserId.toString()
+      existing.getId().equals(excludeUserId)
     ) {
       return;
     }
