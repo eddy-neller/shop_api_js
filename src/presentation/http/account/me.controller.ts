@@ -27,8 +27,6 @@ import {
   type UserResponse,
 } from "@/presentation/http/shared/presenter/user.response";
 
-const MAX_AVATAR_UPLOAD_BYTES = 3 * 1024 * 1024;
-
 @Controller("users/me")
 @UseFilters(UserDomainExceptionFilter)
 export class MeController {
@@ -71,7 +69,7 @@ export class MeController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: MAX_AVATAR_UPLOAD_BYTES }),
+          new MaxFileSizeValidator({ maxSize: 3 * 1024 * 1024 }),
           new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
         ],
       }),

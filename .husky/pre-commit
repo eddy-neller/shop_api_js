@@ -1,0 +1,7 @@
+printf "\033[36m🔎 Lint...\033[0m\n"
+npm run lint
+
+printf "\033[36m🧪 Tests (CI)...\033[0m\n"
+npm test
+
+printf "\033[32m✅ Pré-commit OK.\033[0m\n"
