@@ -21,17 +21,17 @@ export class ConfirmPasswordResetUseCase {
     const split = this.tokenProvider.split(command.token);
     const email = Email.fromString(split.email ?? "");
     const rawToken = split.token ?? "";
-    const user = await this.users.findByResetPasswordToken(rawToken);
-
-    if (user === null || !user.getEmail().equals(email)) {
-      throw new UserDomainException("Password reset token is invalid.");
-    }
-
     const passwordHash = PasswordHash.fromString(
       await this.passwordHasher.hash(command.newPassword),
     );
 
     await this.transactional.execute(async () => {
+      const user = await this.users.findByResetPasswordToken(rawToken);
+
+      if (user === null || !user.getEmail().equals(email)) {
+        throw new UserDomainException("Password reset token is invalid.");
+      }
+
       user.completePasswordReset(rawToken, passwordHash, this.clock.now());
 
       await this.users.save(user);

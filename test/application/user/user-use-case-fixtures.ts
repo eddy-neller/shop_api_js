@@ -20,8 +20,7 @@ export const fixedNow = new Date("2026-06-22T12:00:00.000Z");
 export function makeHasher(
   hash = "hashed-password",
   verifyResult:
-    | boolean
-    | ((storedHash: string, plainPassword: string) => boolean) = true,
+    boolean | ((storedHash: string, plainPassword: string) => boolean) = true,
 ): PasswordHasherPort {
   return {
     hash: () => Promise.resolve(hash),
@@ -43,6 +42,24 @@ export function makeClock(now = fixedNow): ClockPort {
 export function makeTransactional(): TransactionalPort {
   return {
     execute: (callback) => callback(),
+  };
+}
+
+export function makeTransactionalSpy(): {
+  transactional: TransactionalPort;
+  getCallCount(): number;
+} {
+  let callCount = 0;
+
+  return {
+    transactional: {
+      execute: async (callback) => {
+        callCount += 1;
+
+        return callback();
+      },
+    },
+    getCallCount: () => callCount,
   };
 }
 

@@ -14,13 +14,14 @@ export class DeleteUserByAdminUseCase {
 
   public async execute(command: DeleteUserByAdminCommand): Promise<void> {
     const userId = UserId.fromString(command.userId);
-    const user = await this.users.findById(userId);
-
-    if (user === null) {
-      throw new UserNotFoundException(command.userId);
-    }
 
     await this.transactional.execute(async () => {
+      const user = await this.users.findById(userId);
+
+      if (user === null) {
+        throw new UserNotFoundException(command.userId);
+      }
+
       user.deleteByAdmin(this.clock.now());
 
       await this.users.delete(user);

@@ -14,13 +14,15 @@ export class ResetWrongPasswordAttemptsUseCase {
   public async execute(
     command: ResetWrongPasswordAttemptsCommand,
   ): Promise<void> {
-    const user = await this.users.findById(UserId.fromString(command.userId));
-
-    if (user === null) {
-      return;
-    }
+    const userId = UserId.fromString(command.userId);
 
     await this.transactional.execute(async () => {
+      const user = await this.users.findById(userId);
+
+      if (user === null) {
+        return;
+      }
+
       user.resetWrongPasswordAttempts(this.clock.now());
 
       await this.users.save(user);

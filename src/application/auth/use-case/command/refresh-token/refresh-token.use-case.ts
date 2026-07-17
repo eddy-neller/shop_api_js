@@ -22,11 +22,12 @@ export class RefreshTokenUseCase {
   public async execute(
     command: RefreshTokenCommand,
   ): Promise<AuthTokensReadModel> {
+    const now = this.clock.now();
+    const hash = RefreshTokenHash.fromString(
+      this.refreshTokenHasher.hash(command.refreshToken),
+    );
+
     return this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const hash = RefreshTokenHash.fromString(
-        this.refreshTokenHasher.hash(command.refreshToken),
-      );
       const storedToken = await this.refreshTokens.findByHash(hash);
 
       if (storedToken === null) {

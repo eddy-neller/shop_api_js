@@ -19,37 +19,36 @@ export class UpdatePasswordUseCase {
 
   public async execute(command: UpdatePasswordCommand): Promise<void> {
     const userId = UserId.fromString(command.userId);
-    const user = await this.users.findById(userId);
-
-    if (user === null) {
-      throw new UserNotFoundException(command.userId);
-    }
-
-    const currentPasswordHash = user.getPasswordHash().toString();
-
-    const isCurrentPasswordValid = await this.passwordHasher.verify(
-      currentPasswordHash,
-      command.currentPassword,
-    );
-
-    if (!isCurrentPasswordValid) {
-      throw new InvalidCurrentPasswordException();
-    }
-
-    const isSameAsCurrentPassword = await this.passwordHasher.verify(
-      currentPasswordHash,
-      command.newPassword,
-    );
-
-    if (isSameAsCurrentPassword) {
-      throw new SamePasswordException();
-    }
-
     const passwordHash = PasswordHash.fromString(
       await this.passwordHasher.hash(command.newPassword),
     );
 
     await this.transactional.execute(async () => {
+      const user = await this.users.findById(userId);
+
+      if (user === null) {
+        throw new UserNotFoundException(command.userId);
+      }
+
+      const currentPasswordHash = user.getPasswordHash().toString();
+      const isCurrentPasswordValid = await this.passwordHasher.verify(
+        currentPasswordHash,
+        command.currentPassword,
+      );
+
+      if (!isCurrentPasswordValid) {
+        throw new InvalidCurrentPasswordException();
+      }
+
+      const isSameAsCurrentPassword = await this.passwordHasher.verify(
+        currentPasswordHash,
+        command.newPassword,
+      );
+
+      if (isSameAsCurrentPassword) {
+        throw new SamePasswordException();
+      }
+
       user.changePassword(passwordHash, this.clock.now());
 
       await this.users.save(user);

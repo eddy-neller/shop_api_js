@@ -18,19 +18,19 @@ export class RequestActivationEmailUseCase {
 
   public async execute(command: RequestActivationEmailCommand): Promise<void> {
     const email = Email.fromString(command.email);
-    const user = await this.users.findByEmail(email);
-
-    if (user === null) {
-      return;
-    }
+    const now = this.clock.now();
+    const token = this.tokenProvider.generateRandomToken();
+    const expiresAt = addIsoDuration(
+      now,
+      this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
+    );
 
     await this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const token = this.tokenProvider.generateRandomToken();
-      const expiresAt = addIsoDuration(
-        now,
-        this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
-      );
+      const user = await this.users.findByEmail(email);
+
+      if (user === null) {
+        return;
+      }
 
       user.requestActivation(token, expiresAt, now);
 

@@ -24,9 +24,14 @@ export class LoginUseCase {
   ) {}
 
   public async execute(command: LoginCommand): Promise<AuthTokensReadModel> {
+    const email = Email.fromString(command.email);
+    const now = this.clock.now();
+    const maxAttempts = this.config.getNumber(
+      "MAX_LOGIN_ATTEMPTS",
+      DEFAULT_MAX_LOGIN_ATTEMPTS,
+    );
+
     return this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const email = Email.fromString(command.email);
       const user = await this.users.findByEmail(email);
 
       if (user === null) {
@@ -43,10 +48,6 @@ export class LoginUseCase {
       );
 
       if (!passwordValid) {
-        const maxAttempts = this.config.getNumber(
-          "MAX_LOGIN_ATTEMPTS",
-          DEFAULT_MAX_LOGIN_ATTEMPTS,
-        );
         user.registerWrongPasswordAttempt(maxAttempts, now);
         await this.users.save(user);
 

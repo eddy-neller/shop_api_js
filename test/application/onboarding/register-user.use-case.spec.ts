@@ -8,6 +8,8 @@ import { RegisterUserCommand } from "@/application/onboarding/use-case/command/r
 import { RegisterUserUseCase } from "@/application/onboarding/use-case/command/register-user/register-user.use-case";
 import { UserUniquenessChecker } from "@/application/shared/service/user-uniqueness-checker";
 import { EmailAlreadyUsedException } from "@/domain/user/exception/uniqueness/email-already-used.exception";
+import { InvalidEmailException } from "@/domain/user/exception/identity/invalid-email.exception";
+import { makeTransactionalSpy } from "../user/user-use-case-fixtures";
 import { InMemoryUserRepository } from "../user/in-memory-user.repository";
 
 describe("RegisterUserUseCase", () => {
@@ -40,9 +42,28 @@ describe("RegisterUserUseCase", () => {
       ),
     ).rejects.toThrow(EmailAlreadyUsedException);
   });
+
+  it("does not open a transaction when pure input validation fails", async () => {
+    const repository = new InMemoryUserRepository();
+    const transaction = makeTransactionalSpy();
+    const useCase = makeUseCase(repository, transaction.transactional);
+
+    await expect(
+      useCase.execute(
+        new RegisterUserCommand("invalid-email", "john", "ChangeMe123!"),
+      ),
+    ).rejects.toThrow(InvalidEmailException);
+
+    expect(transaction.getCallCount()).toBe(0);
+  });
 });
 
-function makeUseCase(repository: InMemoryUserRepository): RegisterUserUseCase {
+function makeUseCase(
+  repository: InMemoryUserRepository,
+  transactional: TransactionalPort = {
+    execute: (callback) => callback(),
+  },
+): RegisterUserUseCase {
   const hasher: PasswordHasherPort = {
     hash: () => Promise.resolve("hashed-password"),
     verify: () => Promise.resolve(true),
@@ -50,13 +71,10 @@ function makeUseCase(repository: InMemoryUserRepository): RegisterUserUseCase {
   const tokenProvider: TokenProviderPort = {
     generateRandomToken: () => "activation-token",
     encode: (token, email) => `${email.toString()}&${token}`,
-    split: () => ({})
+    split: () => ({}),
   };
   const clock: ClockPort = {
     now: () => new Date("2026-06-22T12:00:00.000Z"),
-  };
-  const transactional: TransactionalPort = {
-    execute: (callback) => callback(),
   };
   const config: ConfigPort = {
     getString: () => "P2D",

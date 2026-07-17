@@ -17,17 +17,16 @@ export class RegisterWrongPasswordAttemptUseCase {
     command: RegisterWrongPasswordAttemptCommand,
   ): Promise<void> {
     const email = Email.fromString(command.email);
-    const user = await this.users.findByEmail(email);
-
-    if (user === null) {
-      return;
-    }
+    const maxAttempts = this.config.getNumber("MAX_LOGIN_ATTEMPTS", 5);
 
     await this.transactional.execute(async () => {
-      user.registerWrongPasswordAttempt(
-        this.config.getNumber("MAX_LOGIN_ATTEMPTS", 5),
-        this.clock.now(),
-      );
+      const user = await this.users.findByEmail(email);
+
+      if (user === null) {
+        return;
+      }
+
+      user.registerWrongPasswordAttempt(maxAttempts, this.clock.now());
 
       await this.users.save(user);
     });

@@ -5,6 +5,7 @@ import { InMemoryRefreshTokenRepository } from "../user/in-memory-refresh-token.
 import {
   makeRefreshToken,
   makeRefreshTokenHasher,
+  makeTransactional,
 } from "../user/user-use-case-fixtures";
 
 describe("LogoutUseCase", () => {
@@ -18,7 +19,11 @@ describe("LogoutUseCase", () => {
       }),
     );
 
-    await new LogoutUseCase(refreshTokens, makeRefreshTokenHasher()).execute(
+    await new LogoutUseCase(
+      refreshTokens,
+      makeRefreshTokenHasher(),
+      makeTransactional(),
+    ).execute(
       new LogoutCommand("11111111-1111-4111-8111-111111111111", "refresh"),
     );
 
@@ -29,7 +34,11 @@ describe("LogoutUseCase", () => {
     const refreshTokens = new InMemoryRefreshTokenRepository();
 
     await expect(
-      new LogoutUseCase(refreshTokens, makeRefreshTokenHasher()).execute(
+      new LogoutUseCase(
+        refreshTokens,
+        makeRefreshTokenHasher(),
+        makeTransactional(),
+      ).execute(
         new LogoutCommand("11111111-1111-4111-8111-111111111111", "missing"),
       ),
     ).resolves.toBeUndefined();
@@ -46,7 +55,11 @@ describe("LogoutUseCase", () => {
     );
 
     await expect(
-      new LogoutUseCase(refreshTokens, makeRefreshTokenHasher()).execute(
+      new LogoutUseCase(
+        refreshTokens,
+        makeRefreshTokenHasher(),
+        makeTransactional(),
+      ).execute(
         new LogoutCommand("11111111-1111-4111-8111-111111111111", "refresh"),
       ),
     ).resolves.toBeUndefined();

@@ -31,47 +31,45 @@ export class UpdateUserByAdminUseCase {
     command: UpdateUserByAdminCommand,
   ): Promise<UserReadModel> {
     const userId = UserId.fromString(command.userId);
-    const user = await this.users.findById(userId);
-
-    if (user === null) {
-      throw new UserNotFoundException(command.userId);
-    }
-
     const email =
       command.email !== null ? Email.fromString(command.email) : null;
     const username =
       command.username !== null ? Username.fromString(command.username) : null;
-
-    if (email !== null) {
-      await this.uniquenessChecker.ensureEmailAvailable(email, userId);
-    }
-
-    if (username !== null) {
-      await this.uniquenessChecker.ensureUsernameAvailable(username, userId);
-    }
-
-    const roles: UserRole[] | null =
-      command.roles !== null ? command.roles.map(toUserRole) : null;
-
-    const status =
-      command.status !== null ? UserStatus.fromNumber(command.status) : null;
     const firstname =
       command.firstname !== null
         ? Firstname.fromString(command.firstname)
         : null;
     const lastname =
       command.lastname !== null ? Lastname.fromString(command.lastname) : null;
+    const roles: UserRole[] | null =
+      command.roles !== null ? command.roles.map(toUserRole) : null;
+    const status =
+      command.status !== null ? UserStatus.fromNumber(command.status) : null;
+    const passwordHash =
+      command.plainPassword !== null && command.plainPassword.trim() !== ""
+        ? PasswordHash.fromString(
+            await this.passwordHasher.hash(command.plainPassword),
+          )
+        : null;
+    const now = this.clock.now();
 
     return this.transactional.execute(async () => {
-      const passwordHash =
-        command.plainPassword !== null && command.plainPassword.trim() !== ""
-          ? PasswordHash.fromString(
-              await this.passwordHasher.hash(command.plainPassword),
-            )
-          : null;
+      const user = await this.users.findById(userId);
+
+      if (user === null) {
+        throw new UserNotFoundException(command.userId);
+      }
+
+      if (email !== null) {
+        await this.uniquenessChecker.ensureEmailAvailable(email, userId);
+      }
+
+      if (username !== null) {
+        await this.uniquenessChecker.ensureUsernameAvailable(username, userId);
+      }
 
       user.updateByAdmin({
-        now: this.clock.now(),
+        now,
         username,
         email,
         firstname,

@@ -26,36 +26,35 @@ export class RegisterUserUseCase {
   ) {}
 
   public async execute(command: RegisterUserCommand): Promise<UserReadModel> {
-    return this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const email = Email.fromString(command.email);
-      const username = Username.fromString(command.username);
+    const username = Username.fromString(command.username);
+    const email = Email.fromString(command.email);
+    const preferences = Preferences.fromObject(command.preferences ?? {});
+    const passwordHash = PasswordHash.fromString(
+      await this.passwordHasher.hash(command.plainPassword),
+    );
 
+    const now = this.clock.now();
+    const user = User.register({
+      id: this.users.nextIdentity(),
+      username,
+      email,
+      passwordHash,
+      preferences: preferences,
+      now,
+    });
+    const token = this.tokenProvider.generateRandomToken();
+    const expiresAt = addIsoDuration(
+      now,
+      this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
+    );
+
+    user.requestActivation(token, expiresAt, now);
+
+    return this.transactional.execute(async () => {
       await this.uniquenessChecker.ensureEmailAndUsernameAvailable(
         email,
         username,
       );
-
-      const passwordHash = PasswordHash.fromString(
-        await this.passwordHasher.hash(command.plainPassword),
-      );
-
-      const user = User.register({
-        id: this.users.nextIdentity(),
-        username,
-        email,
-        passwordHash,
-        preferences: Preferences.fromObject(command.preferences ?? {}),
-        now,
-      });
-
-      const token = this.tokenProvider.generateRandomToken();
-      const expiresAt = addIsoDuration(
-        now,
-        this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
-      );
-
-      user.requestActivation(token, expiresAt, now);
 
       await this.users.save(user);
 

@@ -18,19 +18,19 @@ export class RequestPasswordResetUseCase {
 
   public async execute(command: RequestPasswordResetCommand): Promise<void> {
     const email = Email.fromString(command.email);
-    const user = await this.users.findByEmail(email);
-
-    if (user === null) {
-      return;
-    }
+    const token = this.tokenProvider.generateRandomToken();
+    const now = this.clock.now();
+    const expiresAt = addIsoDuration(
+      now,
+      this.config.getString("RESET_PASSWORD_TOKEN_TTL", "PT15M"),
+    );
 
     await this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const token = this.tokenProvider.generateRandomToken();
-      const expiresAt = addIsoDuration(
-        now,
-        this.config.getString("RESET_PASSWORD_TOKEN_TTL", "PT15M"),
-      );
+      const user = await this.users.findByEmail(email);
+
+      if (user === null) {
+        return;
+      }
 
       user.requestPasswordReset(token, expiresAt, now);
 

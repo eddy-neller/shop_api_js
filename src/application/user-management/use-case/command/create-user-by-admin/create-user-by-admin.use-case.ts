@@ -27,40 +27,39 @@ export class CreateUserByAdminUseCase {
   public async execute(
     command: CreateUserByAdminCommand,
   ): Promise<UserReadModel> {
-    return this.transactional.execute(async () => {
-      const now = this.clock.now();
-      const email = Email.fromString(command.email);
-      const username = Username.fromString(command.username);
+    const username = Username.fromString(command.username);
+    const email = Email.fromString(command.email);
+    const passwordHash = PasswordHash.fromString(
+      await this.passwordHasher.hash(command.plainPassword),
+    );
+    const roles = command.roles.map(toUserRole);
+    const status = UserStatus.fromNumber(command.status);
+    const firstname = command.firstname !== null
+      ? Firstname.fromString(command.firstname)
+      : null;
+    const lastname = command.lastname !== null
+      ? Lastname.fromString(command.lastname)
+      : null;
 
+    const now = this.clock.now();
+    const user = User.createByAdmin({
+      id: this.users.nextIdentity(),
+      username,
+      email,
+      passwordHash,
+      roles,
+      status: status,
+      preferences: new Preferences(),
+      now,
+      firstname: firstname,
+      lastname: lastname,
+    });
+
+    return this.transactional.execute(async () => {
       await this.uniquenessChecker.ensureEmailAndUsernameAvailable(
         email,
         username,
       );
-
-      const passwordHash = PasswordHash.fromString(
-        await this.passwordHasher.hash(command.plainPassword),
-      );
-
-      const roles = command.roles.map(toUserRole);
-
-      const user = User.createByAdmin({
-        id: this.users.nextIdentity(),
-        username,
-        email,
-        passwordHash,
-        roles,
-        status: UserStatus.fromNumber(command.status),
-        preferences: new Preferences(),
-        now,
-        firstname:
-          command.firstname !== null
-            ? Firstname.fromString(command.firstname)
-            : null,
-        lastname:
-          command.lastname !== null
-            ? Lastname.fromString(command.lastname)
-            : null,
-      });
 
       await this.users.save(user);
 

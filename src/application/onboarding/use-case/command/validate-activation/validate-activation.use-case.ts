@@ -18,13 +18,14 @@ export class ValidateActivationUseCase {
     const split = this.tokenProvider.split(command.token);
     const email = Email.fromString(split.email ?? "");
     const rawToken = split.token ?? "";
-    const user = await this.users.findByActivationToken(rawToken);
-
-    if (user === null || !user.getEmail().equals(email)) {
-      throw new UserNotFoundException("User not found for this token.");
-    }
 
     await this.transactional.execute(async () => {
+      const user = await this.users.findByActivationToken(rawToken);
+
+      if (user === null || !user.getEmail().equals(email)) {
+        throw new UserNotFoundException("User not found for this token.");
+      }
+
       user.activate(rawToken, this.clock.now());
 
       await this.users.save(user);

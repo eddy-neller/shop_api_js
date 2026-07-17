@@ -19,27 +19,50 @@ export class UpdateAvatarUseCase {
 
   public async execute(command: UpdateAvatarCommand): Promise<UserReadModel> {
     const userId = UserId.fromString(command.userId);
+    await this.imageValidator.validate(command.file);
+
+    // Préflight pour éviter un upload inutile
     const user = await this.users.findById(userId);
 
     if (user === null) {
       throw new UserNotFoundException(command.userId);
     }
 
-    await this.imageValidator.validate(command.file);
-
-    const previousAvatarName = user.getAvatarName();
     const avatarName = await this.uploader.upload(userId, command.file);
 
-    await this.transactional.execute(async () => {
-      user.updateAvatar(avatarName, this.clock.now());
+    let update: { previousAvatarName: string | null; readModel: UserReadModel };
 
-      await this.users.save(user);
-    });
+    try {
+      update = await this.transactional.execute(async () => {
+        const user = await this.users.findById(userId);
 
-    if (previousAvatarName !== null && previousAvatarName !== avatarName) {
-      await this.uploader.delete(previousAvatarName);
+        if (user === null) {
+          throw new UserNotFoundException(command.userId);
+        }
+
+        const previousAvatarName = user.getAvatarName();
+        user.updateAvatar(avatarName, this.clock.now());
+
+        await this.users.save(user);
+
+        return {
+          previousAvatarName,
+          readModel: UserReadModel.fromUser(user),
+        };
+      });
+    } catch (error: unknown) {
+      await this.uploader.delete(avatarName);
+
+      throw error;
     }
 
-    return UserReadModel.fromUser(user);
+    if (
+      update.previousAvatarName !== null &&
+      update.previousAvatarName !== avatarName
+    ) {
+      await this.uploader.delete(update.previousAvatarName);
+    }
+
+    return update.readModel;
   }
 }

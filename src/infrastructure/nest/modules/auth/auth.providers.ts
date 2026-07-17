@@ -116,8 +116,9 @@ export const authUseCaseProviders: Provider[] = [
     useFactory: (
       refreshTokens: RefreshTokenRepositoryPort,
       refreshTokenHasher: RefreshTokenHasherPort,
-    ) => new LogoutUseCase(refreshTokens, refreshTokenHasher),
-    inject: [REFRESH_TOKEN_REPOSITORY, REFRESH_TOKEN_HASHER],
+      transactional: TransactionalPort,
+    ) => new LogoutUseCase(refreshTokens, refreshTokenHasher, transactional),
+    inject: [REFRESH_TOKEN_REPOSITORY, REFRESH_TOKEN_HASHER, TRANSACTIONAL],
   },
 ];
 

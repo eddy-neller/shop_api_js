@@ -18,6 +18,7 @@ import {
   makeAvatarUploader,
   makeClock,
   makeTransactional,
+  makeTransactionalSpy,
 } from "../user/user-use-case-fixtures";
 import { InMemoryUserRepository } from "../user/in-memory-user.repository";
 
@@ -54,7 +55,8 @@ describe("UpdateAvatarUseCase", () => {
     const useCase = new UpdateAvatarUseCase(
       repository,
       makeAvatarImageValidator(),
-      makeAvatarUploader("avatar-hash.png"),      makeClock(),
+      makeAvatarUploader("avatar-hash.png"),
+      makeClock(),
       makeTransactional(),
     );
 
@@ -74,7 +76,8 @@ describe("UpdateAvatarUseCase", () => {
     const useCase = new UpdateAvatarUseCase(
       repository,
       makeAvatarImageValidator(),
-      makeAvatarUploader(),      makeClock(),
+      makeAvatarUploader(),
+      makeClock(),
       makeTransactional(),
     );
 
@@ -86,12 +89,14 @@ describe("UpdateAvatarUseCase", () => {
   it("rejects an invalid image without persisting", async () => {
     const repository = new InMemoryUserRepository();
     await seedUser(repository);
+    const transaction = makeTransactionalSpy();
 
     const useCase = new UpdateAvatarUseCase(
       repository,
       makeAvatarImageValidator(false),
-      makeAvatarUploader(),      makeClock(),
-      makeTransactional(),
+      makeAvatarUploader(),
+      makeClock(),
+      transaction.transactional,
     );
 
     await expect(
@@ -100,6 +105,7 @@ describe("UpdateAvatarUseCase", () => {
 
     const stored = await repository.findById(UserId.fromString(USER_ID));
     expect(stored?.toSnapshot().avatarName).toBeNull();
+    expect(transaction.getCallCount()).toBe(0);
   });
 
   it("deletes the previous avatar when replacing it", async () => {
@@ -111,7 +117,8 @@ describe("UpdateAvatarUseCase", () => {
     const first = new UpdateAvatarUseCase(
       repository,
       makeAvatarImageValidator(),
-      makeAvatarUploader("first.png", deletedNames),      makeClock(),
+      makeAvatarUploader("first.png", deletedNames),
+      makeClock(),
       makeTransactional(),
     );
     await first.execute(new UpdateAvatarCommand(USER_ID, file));
@@ -119,7 +126,8 @@ describe("UpdateAvatarUseCase", () => {
     const second = new UpdateAvatarUseCase(
       repository,
       makeAvatarImageValidator(),
-      makeAvatarUploader("second.png", deletedNames),      makeClock(),
+      makeAvatarUploader("second.png", deletedNames),
+      makeClock(),
       makeTransactional(),
     );
     await second.execute(new UpdateAvatarCommand(USER_ID, file));
