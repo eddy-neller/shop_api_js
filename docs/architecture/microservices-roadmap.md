@@ -162,6 +162,37 @@ RabbitMQ or NATS
 
 Kafka is useful later, but it is not the best first step for this project.
 
+### Communication and transport choices
+
+The transport must be selected according to the interaction, rather than as a
+repository or monorepo decision.
+
+For the first phase, the recommended choice is **RabbitMQ**. It fits the
+asynchronous side effects of Identity events (`UserRegistered`,
+`PasswordResetRequested`): routing to consumers, acknowledgements,
+redelivery, retry policies and dead-letter queues. The `identity-service`
+should publish through its transactional outbox; consumers, including
+`notification-service`, must remain idempotent because a message can be
+delivered more than once.
+
+Synchronous requests between services should remain explicit contracts. HTTP
+is sufficient at first. gRPC is an optional later choice for internal,
+latency-sensitive request/response calls when a typed protobuf contract brings
+a concrete benefit. It does not replace asynchronous events: a request such as
+"send an activation email" remains an event-driven side effect.
+
+Kafka is a later option, not a default. Introduce it only if the system needs
+durable event retention and replay, several independent projections or
+consumers, stream processing, analytics, or sustained high-volume event
+flows. Its operational and conceptual cost is not justified by the initial
+Identity-to-Notification integration.
+
+```text
+Phase 1: RabbitMQ + transactional outbox
+Synchronous calls: HTTP first; gRPC when a concrete internal RPC need emerges
+Later: Kafka when replay, projections, analytics or streaming justify it
+```
+
 ### Phase 2 - Extract the first business service
 
 ```text
