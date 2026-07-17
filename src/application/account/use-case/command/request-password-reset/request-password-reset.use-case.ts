@@ -22,7 +22,7 @@ export class RequestPasswordResetUseCase {
     const now = this.clock.now();
     const expiresAt = addIsoDuration(
       now,
-      this.config.getString("RESET_PASSWORD_TOKEN_TTL", "PT15M"),
+      this.config.getString("RESET_PASSWORD_TOKEN_TTL"),
     );
 
     await this.transactional.execute(async () => {

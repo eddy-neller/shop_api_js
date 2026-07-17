@@ -15,9 +15,9 @@ function makeConfig(secret = "test-secret"): ConfigPort {
         return "PT15M";
       }
 
-      return def;
+      return def ?? "";
     },
-    getNumber: (_name, def) => def,
+    getNumber: (_name, def) => def ?? 0,
   };
 }
 

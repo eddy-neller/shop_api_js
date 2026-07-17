@@ -8,8 +8,6 @@ import type {
 } from "@/application/auth/port/access-token-provider.port";
 import { InvalidCredentialsException } from "@/domain/user/exception/security/invalid-credentials.exception";
 
-const DEFAULT_ACCESS_TTL = "PT15M";
-
 type AccessTokenPayload = {
   sub: string;
   email: string;
@@ -58,7 +56,7 @@ export class JwtAccessTokenProvider implements AccessTokenProviderPort {
   }
 
   private secret(): string {
-    const secret = this.config.getString("JWT_SECRET", "");
+    const secret = this.config.getString("JWT_SECRET");
 
     if (secret.trim() === "") {
       throw new Error("JWT_SECRET must be defined.");
@@ -68,7 +66,7 @@ export class JwtAccessTokenProvider implements AccessTokenProviderPort {
   }
 
   private accessTtlSeconds(): number {
-    const ttl = this.config.getString("JWT_ACCESS_TTL", DEFAULT_ACCESS_TTL);
+    const ttl = this.config.getString("JWT_ACCESS_TTL");
     const base = new Date(0);
 
     return Math.floor(

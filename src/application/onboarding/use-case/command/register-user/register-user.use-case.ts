@@ -45,7 +45,7 @@ export class RegisterUserUseCase {
     const token = this.tokenProvider.generateRandomToken();
     const expiresAt = addIsoDuration(
       now,
-      this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
+      this.config.getString("REGISTER_TOKEN_TTL"),
     );
 
     user.requestActivation(token, expiresAt, now);

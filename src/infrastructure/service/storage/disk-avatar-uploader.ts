@@ -8,8 +8,6 @@ import type {
 } from "@/application/account/port/avatar-uploader.port";
 import type { UserId } from "@/domain/user/value-object/identity/user-id";
 
-const DEFAULT_UPLOAD_DIR = "public/uploads/images/user/avatar";
-
 const EXTENSION_BY_MIME_TYPE: Readonly<Record<string, string>> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -40,7 +38,7 @@ export class DiskAvatarUploader implements AvatarUploaderPort {
   }
 
   private uploadDir(): string {
-    return this.config.getString("AVATAR_UPLOAD_DIR", DEFAULT_UPLOAD_DIR);
+    return this.config.getString("AVATAR_UPLOAD_DIR");
   }
 
   private buildName(userId: UserId, file: AvatarFile): string {

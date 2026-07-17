@@ -70,14 +70,18 @@ export function makeConfig(): ConfigPort {
         return "P2D";
       }
 
-      if (name === "RESET_PASSWORD_TOKEN_TTL") {
+      if (name === "RESET_PASSWORD_TOKEN_TTL" || name === "JWT_ACCESS_TTL") {
         return "PT15M";
       }
 
-      return defaultValue;
+      if (name === "JWT_REFRESH_TTL") {
+        return "P30D";
+      }
+
+      return defaultValue ?? "";
     },
     getNumber: (name, defaultValue) =>
-      name === "MAX_LOGIN_ATTEMPTS" ? 2 : defaultValue,
+      name === "MAX_LOGIN_ATTEMPTS" ? 2 : (defaultValue ?? 0),
   };
 }
 

@@ -10,8 +10,6 @@ import { RefreshToken } from "@/domain/refresh-token/model/refresh-token.aggrega
 import { RefreshTokenHash } from "@/domain/refresh-token/value-object/refresh-token-hash";
 import type { User } from "@/domain/user/model/user.aggregate";
 
-const DEFAULT_REFRESH_TTL = "P30D";
-
 export class AuthTokenIssuer implements AuthTokenIssuerPort {
   public constructor(
     private readonly accessTokens: AccessTokenProviderPort,
@@ -32,7 +30,7 @@ export class AuthTokenIssuer implements AuthTokenIssuerPort {
     const rawRefreshToken = this.tokenProvider.generateRandomToken();
     const refreshExpiresAt = addIsoDuration(
       now,
-      this.config.getString("JWT_REFRESH_TTL", DEFAULT_REFRESH_TTL),
+      this.config.getString("JWT_REFRESH_TTL"),
     );
 
     const refreshToken = RefreshToken.issue({

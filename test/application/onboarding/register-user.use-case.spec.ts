@@ -78,7 +78,7 @@ function makeUseCase(
   };
   const config: ConfigPort = {
     getString: () => "P2D",
-    getNumber: (_name, defaultValue) => defaultValue,
+    getNumber: (_name, defaultValue) => defaultValue ?? 0,
   };
 
   return new RegisterUserUseCase(

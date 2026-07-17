@@ -4,9 +4,6 @@ import type { AvatarImageValidatorPort } from "@/application/account/port/avatar
 import type { AvatarFile } from "@/application/account/port/avatar-uploader.port";
 import { InvalidAvatarException } from "@/domain/user/exception/profile/invalid-avatar.exception";
 
-const DEFAULT_MAX_SIZE = 2_097_152;
-const DEFAULT_MAX_DIMENSION = 512;
-
 const ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set([
   "image/jpeg",
   "image/png",
@@ -25,15 +22,12 @@ export class SharpAvatarImageValidator implements AvatarImageValidatorPort {
       throw InvalidAvatarException.invalidMimeType(file.mimeType);
     }
 
-    const maxSize = this.config.getNumber("AVATAR_MAX_SIZE", DEFAULT_MAX_SIZE);
+    const maxSize = this.config.getNumber("AVATAR_MAX_SIZE");
     if (file.size > maxSize) {
       throw InvalidAvatarException.tooLarge(maxSize);
     }
 
-    const maxDimension = this.config.getNumber(
-      "AVATAR_MAX_DIMENSION",
-      DEFAULT_MAX_DIMENSION,
-    );
+    const maxDimension = this.config.getNumber("AVATAR_MAX_DIMENSION");
 
     const { width, height } = await sharp(file.buffer).metadata();
 

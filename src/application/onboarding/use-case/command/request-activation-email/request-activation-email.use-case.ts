@@ -22,7 +22,7 @@ export class RequestActivationEmailUseCase {
     const token = this.tokenProvider.generateRandomToken();
     const expiresAt = addIsoDuration(
       now,
-      this.config.getString("REGISTER_TOKEN_TTL", "P2D"),
+      this.config.getString("REGISTER_TOKEN_TTL"),
     );
 
     await this.transactional.execute(async () => {

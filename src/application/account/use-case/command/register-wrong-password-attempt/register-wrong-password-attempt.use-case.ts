@@ -17,7 +17,7 @@ export class RegisterWrongPasswordAttemptUseCase {
     command: RegisterWrongPasswordAttemptCommand,
   ): Promise<void> {
     const email = Email.fromString(command.email);
-    const maxAttempts = this.config.getNumber("MAX_LOGIN_ATTEMPTS", 5);
+    const maxAttempts = this.config.getNumber("MAX_LOGIN_ATTEMPTS");
 
     await this.transactional.execute(async () => {
       const user = await this.users.findByEmail(email);

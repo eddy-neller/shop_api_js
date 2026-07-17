@@ -11,8 +11,6 @@ import { InvalidCredentialsException } from "@/domain/user/exception/security/in
 import { UserLockedException } from "@/domain/user/exception/security/user-locked.exception";
 import { Email } from "@/domain/user/value-object/identity/email";
 
-const DEFAULT_MAX_LOGIN_ATTEMPTS = 5;
-
 export class LoginUseCase {
   public constructor(
     private readonly users: UserRepositoryPort,
@@ -26,10 +24,7 @@ export class LoginUseCase {
   public async execute(command: LoginCommand): Promise<AuthTokensReadModel> {
     const email = Email.fromString(command.email);
     const now = this.clock.now();
-    const maxAttempts = this.config.getNumber(
-      "MAX_LOGIN_ATTEMPTS",
-      DEFAULT_MAX_LOGIN_ATTEMPTS,
-    );
+    const maxAttempts = this.config.getNumber("MAX_LOGIN_ATTEMPTS");
 
     return this.transactional.execute(async () => {
       const user = await this.users.findByEmail(email);

@@ -51,7 +51,7 @@ function makeRegisterUseCase(
   const tokenProvider: TokenProviderPort = {
     generateRandomToken: () => "activation-token",
     encode: (token, email) => `${email.toString()}&${token}`,
-    split: () => ({})
+    split: () => ({}),
   };
   const clock: ClockPort = {
     now: () => new Date("2026-06-22T12:00:00.000Z"),
@@ -61,7 +61,7 @@ function makeRegisterUseCase(
   };
   const config: ConfigPort = {
     getString: () => "P2D",
-    getNumber: (_name, defaultValue) => defaultValue,
+    getNumber: (_name, defaultValue) => defaultValue ?? 0,
   };
 
   return new RegisterUserUseCase(
