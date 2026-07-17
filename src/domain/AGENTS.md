@@ -60,7 +60,7 @@ Regles:
 - `fromSnapshot` sert a rehydrater depuis la persistance et ne doit pas enregistrer d'event metier.
 - Les events Domain sont des faits passes (`UserRegisteredEvent`) et doivent rester independants des frameworks.
 - Le temps est fourni au Domain par parametre (`now: Date`), jamais cree directement dans le Domain.
-- Les snapshots sont des contrats internes Domain <-> mapper; ne pas les exposer tels quels en HTTP.
+- Les snapshots sont des contrats internes Domain <-> mapper; ne pas les exposer tels quels en HTTP. Conserver `toSnapshot()` uniquement dans la methode `toPersistence()` du mapper; les autres consommateurs lisent l'agregat via des getters cibles.
 - Les messages des exceptions metier (Domain et Application) sont toujours rediges en anglais. Aucun message d'erreur en francais ne doit etre committe.
 
 Quand un nouvel invariant est ajoute, ajouter ou mettre a jour l'exception Domain ciblee et les tests unitaires associes.

@@ -59,5 +59,5 @@ Repository actuel:
 - `PrismaUserRepository.nextIdentity()` fabrique l'identite des nouveaux agregats: il recoit `IdGeneratorPort` en parametre constructeur et retourne un `UserId`. C'est le repository, pas le use case, qui porte la strategie d'identite. Le cablage (`PrismaService`, `PrismaTransactionContext`, `ID_GENERATOR`) se fait via `useFactory` + `inject` dans `core.providers.ts`; le repository ne porte pas de decorateur `@Inject`.
 - `PrismaUserRepository.save` utilise `upsert`.
 - Les lectures `findById`, `findByEmail`, `findByUsername`, `findByActivationToken` et `findByResetPasswordToken` retournent `User | null`.
-- `UserMapper.toPersistence` retourne une entree Prisma create/update compatible; garder le mapping exhaustif et explicite.
+- La methode `toPersistence()` de chaque mapper retourne une entree Prisma create/update compatible; garder le mapping exhaustif et explicite.
 - `PrismaUserRepository` doit utiliser le client transactionnel quand `TransactionalPort` execute une operation.

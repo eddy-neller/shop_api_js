@@ -16,6 +16,8 @@ Regles:
 - Controllers utilisent uniquement `CommandBus` et `QueryBus` pour declencher un cas d'usage.
 - Pas d'injection de use case, repository, Prisma service, hasher ou adapter technique dans un controller.
 - DTOs Presentation valident la forme HTTP, pas les invariants metier profonds.
+- **Pas d'instance de VO Domain en Presentation.** La Presentation ne doit **jamais construire, typer ni transporter une instance** de VO Domain: pas de `new XxxVo()` ni `XxxVo.from*()`, pas de propriete, parametre ou retour type par un VO. La conversion scalaire -> VO et la validation des invariants metier appartiennent au handler Application (voir `src/application/AGENTS.md`). Seuls sont autorises les **enums Domain** references pour leurs membres constants — les roles dans la securite (`@Roles(UserRole.Admin)`, hierarchie du `RolesGuard`).
+- **Inputs (DTOs de requete) scalaires.** Un DTO de requete ne porte que des scalaires (ou des formes structurees de scalaires); il ne porte jamais d'instance de VO Domain. Il construit la `Command`/`Query` a partir de ces scalaires; l'hydratation en VOs se fait cote Application.
 - Presenters convertissent les read models Application en reponses HTTP. Forme libre selon le besoin: un presenter **sans dependance** reste une simple methode/fonction (statique); **des qu'il a besoin d'une dependance**, il devient un **service Nest injectable** (`@Injectable`, enregistre dans le module, injecte dans le controller). Les deux formes coexistent (cf. `../api/`).
 - Toute **derivation propre au transport** se fait dans le presenter, jamais dans un use case (sinon elle se duplique a chaque cas d'usage). Exemple: resoudre une URL publique a partir d'un nom de fichier brut porte par le read model, via un port injecte. Le read model reste sur la donnee brute du domaine.
 - Un presenter injectable peut dependre d'un **port Application** (en plus des read models/DTOs): c'est autorise (la Presentation peut dependre de l'Application; cf. presenter de reference cote `../api/`).
@@ -70,4 +72,4 @@ Routes admin (`UserManagementController`, `@Roles(UserRole.Admin)`):
 - `PATCH /users/:id` avec `UpdateUserByAdminRequest`.
 - `DELETE /users/:id`, reponse `204`.
 
-Attention: les ids User sont des UUID. Toute validation de parametre `id` doit etre compatible UUID.
+Attention: les ids d'agregat exposes sont des UUID. Toute validation de parametre `id` doit etre compatible UUID.
