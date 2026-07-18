@@ -1,11 +1,8 @@
-import { join } from 'node:path';
-import { HttpStatus, ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import type { NestExpressApplication } from '@nestjs/platform-express';
-import { AppModule } from '@/infrastructure/nest/app.module';
-
-const DEFAULT_AVATAR_UPLOAD_DIR = 'public/uploads/images/user/avatar';
-const DEFAULT_AVATAR_BASE_URL = '/uploads/images/user/avatar';
+import { join } from "node:path";
+import { HttpStatus, ValidationPipe } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import { AppModule } from "@/infrastructure/nest/app.module";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -15,17 +12,13 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
-    })
+      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+    }),
   );
 
-  app.useStaticAssets(
-    join(
-      process.cwd(),
-      process.env.AVATAR_UPLOAD_DIR ?? DEFAULT_AVATAR_UPLOAD_DIR
-    ),
-    { prefix: process.env.AVATAR_BASE_URL ?? DEFAULT_AVATAR_BASE_URL }
-  );
+  app.useStaticAssets(join(process.cwd(), process.env.AVATAR_UPLOAD_DIR!), {
+    prefix: process.env.AVATAR_BASE_URL,
+  });
 
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);

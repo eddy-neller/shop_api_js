@@ -8,3 +8,9 @@ coverage
 .vscode
 .idea
 .husky/_/
+
+# Assets and user uploads
+/public/uploads/images/shop/product/*
+!public/uploads/images/shop/product/.gitkeep
+/public/uploads/images/user/avatar/*
+!public/uploads/images/user/avatar/.gitkeep

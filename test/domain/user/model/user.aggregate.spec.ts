@@ -52,7 +52,7 @@ describe('User aggregate', () => {
       },
       avatarName: null,
       lastVisit: now,
-      nbLogin: 0,
+      loginCount: 0,
       createdAt: now,
       updatedAt: now
     });

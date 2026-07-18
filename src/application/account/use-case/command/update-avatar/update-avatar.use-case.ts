@@ -21,13 +21,6 @@ export class UpdateAvatarUseCase {
     const userId = UserId.fromString(command.userId);
     await this.imageValidator.validate(command.file);
 
-    // Préflight pour éviter un upload inutile
-    const user = await this.users.findById(userId);
-
-    if (user === null) {
-      throw new UserNotFoundException(command.userId);
-    }
-
     const avatarName = await this.uploader.upload(userId, command.file);
 
     let update: { previousAvatarName: string | null; readModel: UserReadModel };

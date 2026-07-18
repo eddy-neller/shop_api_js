@@ -57,7 +57,7 @@ export type UserSnapshot = {
   preferences: PreferencesSnapshot;
   avatarName: string | null;
   lastVisit: Date;
-  nbLogin: number;
+  loginCount: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -80,7 +80,7 @@ export class User {
     private preferences: Preferences,
     private avatarName: string | null,
     private lastVisit: Date,
-    private nbLogin: number,
+    private loginCount: number,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -175,7 +175,7 @@ export class User {
       Preferences.fromObject(snapshot.preferences),
       snapshot.avatarName,
       snapshot.lastVisit,
-      snapshot.nbLogin,
+      snapshot.loginCount,
       snapshot.createdAt,
       snapshot.updatedAt,
     );
@@ -197,7 +197,7 @@ export class User {
       preferences: this.preferences.toObject(),
       avatarName: this.avatarName,
       lastVisit: this.lastVisit,
-      nbLogin: this.nbLogin,
+      loginCount: this.loginCount,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
@@ -302,7 +302,7 @@ export class User {
   }
 
   public recordSuccessfulLogin(now: Date): void {
-    this.nbLogin += 1;
+    this.loginCount += 1;
     this.lastVisit = now;
     this.touch(now);
   }
@@ -427,6 +427,10 @@ export class User {
 
   public getLastVisit(): Date {
     return this.lastVisit;
+  }
+
+  public getLoginCount(): number {
+    return this.loginCount;
   }
 
   public getCreatedAt(): Date {

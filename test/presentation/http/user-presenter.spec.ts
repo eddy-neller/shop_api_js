@@ -20,6 +20,7 @@ function makeReadModel(avatarName: string | null): UserReadModel {
     1,
     avatarName,
     "2026-06-22T12:00:00.000Z",
+    0,
     "2026-06-22T12:00:00.000Z",
     "2026-06-22T12:00:00.000Z",
   );

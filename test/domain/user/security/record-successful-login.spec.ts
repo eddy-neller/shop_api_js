@@ -22,7 +22,7 @@ describe("User.recordSuccessfulLogin", () => {
     user.recordSuccessfulLogin(loginAt);
 
     const snapshot = user.toSnapshot();
-    expect(snapshot.nbLogin).toBe(1);
+    expect(snapshot.loginCount).toBe(1);
     expect(snapshot.lastVisit).toEqual(loginAt);
     expect(snapshot.updatedAt).toEqual(loginAt);
   });

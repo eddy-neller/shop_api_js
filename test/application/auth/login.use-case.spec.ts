@@ -77,7 +77,7 @@ describe("LoginUseCase", () => {
 
     expect(refreshTokens.tokens).toHaveLength(1);
     const user = await repository.findByEmail(Email.fromString(EMAIL));
-    expect(user?.toSnapshot().nbLogin).toBe(1);
+    expect(user?.toSnapshot().loginCount).toBe(1);
   });
 
   it("rejects an unknown email with invalid credentials", async () => {

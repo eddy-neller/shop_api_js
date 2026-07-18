@@ -46,7 +46,7 @@ export class UserMapper {
       preferences: UserMapper.preferencesSnapshot(record.preferences, record.id),
       avatarName: record.avatarName,
       lastVisit: record.lastVisit,
-      nbLogin: record.nbLogin,
+      loginCount: record.nbLogin,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     });
@@ -70,7 +70,7 @@ export class UserMapper {
       preferences: snapshot.preferences,
       avatarName: snapshot.avatarName,
       lastVisit: snapshot.lastVisit,
-      nbLogin: snapshot.nbLogin,
+      nbLogin: snapshot.loginCount,
       createdAt: snapshot.createdAt,
       updatedAt: snapshot.updatedAt
     };

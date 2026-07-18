@@ -11,6 +11,7 @@ export class UserReadModel {
     public readonly status: number,
     public readonly avatarName: string | null,
     public readonly lastVisit: string,
+    public readonly loginCount: number,
     public readonly createdAt: string,
     public readonly updatedAt: string,
   ) {}
@@ -26,6 +27,7 @@ export class UserReadModel {
       user.getStatus().toNumber(),
       user.getAvatarName(),
       user.getLastVisit().toISOString(),
+      user.getLoginCount(),
       user.getCreatedAt().toISOString(),
       user.getUpdatedAt().toISOString(),
     );
