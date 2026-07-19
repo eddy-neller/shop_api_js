@@ -9,6 +9,23 @@ import { Preferences } from '@/domain/user/value-object/profile/preferences';
 import { UserRole } from '@/domain/user/value-object/access/user-role';
 import { UserStatus } from '@/domain/user/value-object/lifecycle/user-status';
 import { Username } from '@/domain/user/value-object/identity/username';
+import { ReauthenticationReason } from '@/domain/user/event/security/reauthentication-reason';
+import { UserReauthenticationRequiredEvent } from '@/domain/user/event/security/user-reauthentication-required.event';
+
+function expectReauthenticationEvent(
+  event: unknown,
+  userId: UserId,
+  reason: ReauthenticationReason,
+  occurredAt: Date,
+): void {
+  expect(event).toBeInstanceOf(UserReauthenticationRequiredEvent);
+
+  const reauthenticationEvent = event as UserReauthenticationRequiredEvent;
+  expect(reauthenticationEvent.userId).toBe(userId);
+  expect(reauthenticationEvent.reason).toBe(reason);
+  expect(reauthenticationEvent.occurredAt).toBe(occurredAt);
+  expect(reauthenticationEvent.eventName()).toBe('user.reauthentication.required');
+}
 
 describe('User aggregate', () => {
   it('registers a user and records a domain event', () => {
@@ -89,11 +106,25 @@ describe('User aggregate', () => {
       now
     });
 
+    user.pullEvents();
+
     user.registerWrongPasswordAttempt(2, now);
     user.registerWrongPasswordAttempt(2, now);
 
     expect(user.isLocked()).toBe(true);
     expect(user.toSnapshot().security.totalWrongPassword).toBe(2);
+
+    const events = user.pullEvents();
+    expect(events).toHaveLength(3);
+    expectReauthenticationEvent(
+      events[2],
+      user.getId(),
+      ReauthenticationReason.AccountLocked,
+      now,
+    );
+
+    user.registerWrongPasswordAttempt(2, now);
+    expect(user.pullEvents()).toHaveLength(1);
   });
 
   it('creates an active user by admin with explicit roles and identity', () => {
@@ -151,7 +182,113 @@ describe('User aggregate', () => {
     expect(snapshot.firstname).toBe('Janet');
     expect(snapshot.roles).toEqual(['ROLE_ADMIN']);
     expect(snapshot.updatedAt).toEqual(updatedAt);
-    expect(user.pullEvents()).toHaveLength(1);
+    const events = user.pullEvents();
+    expect(events).toHaveLength(2);
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.RolesChanged,
+      updatedAt,
+    );
+  });
+
+  it('requires reauthentication after a password reset', () => {
+    const now = new Date('2026-06-22T12:00:00.000Z');
+    const user = User.register({
+      id: UserId.fromString('11111111-1111-4111-8111-111111111111'),
+      username: Username.fromString('john'),
+      email: Email.fromString('john@example.com'),
+      passwordHash: PasswordHash.fromString('hashed-password'),
+      preferences: Preferences.fromObject({ lang: 'fr' }),
+      now
+    });
+    user.requestPasswordReset('reset-token', new Date('2026-06-23T12:00:00.000Z'), now);
+    user.pullEvents();
+
+    user.completePasswordReset(
+      'reset-token',
+      PasswordHash.fromString('new-hashed-password'),
+      now,
+    );
+
+    const events = user.pullEvents();
+    expect(events).toHaveLength(2);
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.PasswordReset,
+      now,
+    );
+  });
+
+  it('requires reauthentication when an admin disables an active user', () => {
+    const now = new Date('2026-06-22T12:00:00.000Z');
+    const user = User.createByAdmin({
+      id: UserId.fromString('11111111-1111-4111-8111-111111111111'),
+      username: Username.fromString('john'),
+      email: Email.fromString('john@example.com'),
+      passwordHash: PasswordHash.fromString('hashed-password'),
+      roles: [UserRole.User],
+      status: UserStatus.active(),
+      preferences: new Preferences(),
+      now
+    });
+    user.pullEvents();
+
+    user.updateByAdmin({
+      now,
+      username: null,
+      email: null,
+      firstname: null,
+      lastname: null,
+      roles: null,
+      status: UserStatus.blocked(),
+      passwordHash: null
+    });
+
+    const events = user.pullEvents();
+    expect(events).toHaveLength(2);
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.AccessDisabled,
+      now,
+    );
+  });
+
+  it('prioritizes an admin password change when several sensitive fields change', () => {
+    const now = new Date('2026-06-22T12:00:00.000Z');
+    const user = User.createByAdmin({
+      id: UserId.fromString('11111111-1111-4111-8111-111111111111'),
+      username: Username.fromString('john'),
+      email: Email.fromString('john@example.com'),
+      passwordHash: PasswordHash.fromString('hashed-password'),
+      roles: [UserRole.User],
+      status: UserStatus.active(),
+      preferences: new Preferences(),
+      now
+    });
+    user.pullEvents();
+
+    user.updateByAdmin({
+      now,
+      username: null,
+      email: null,
+      firstname: null,
+      lastname: null,
+      roles: [UserRole.Admin],
+      status: UserStatus.blocked(),
+      passwordHash: PasswordHash.fromString('new-hashed-password')
+    });
+
+    const events = user.pullEvents();
+    expect(events).toHaveLength(2);
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.PasswordChanged,
+      now,
+    );
   });
 
   it('does not record an event when updateByAdmin has nothing to change', () => {
@@ -195,7 +332,14 @@ describe('User aggregate', () => {
     user.changePassword(PasswordHash.fromString('new-hashed-password'), now);
 
     expect(user.toSnapshot().passwordHash).toBe('new-hashed-password');
-    expect(user.pullEvents()).toHaveLength(1);
+    const events = user.pullEvents();
+    expect(events).toHaveLength(2);
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.PasswordChanged,
+      now,
+    );
   });
 
   it('updates the avatar, touches updatedAt and records an event', () => {
@@ -237,7 +381,13 @@ describe('User aggregate', () => {
     user.deleteByAdmin(now);
 
     const events = user.pullEvents();
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(2);
     expect(events[0]?.eventName()).toBe('user.deleted_by_admin');
+    expectReauthenticationEvent(
+      events[1],
+      user.getId(),
+      ReauthenticationReason.AccountDeleted,
+      now,
+    );
   });
 });

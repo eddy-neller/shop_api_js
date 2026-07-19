@@ -2,6 +2,8 @@ import type { DomainEvent } from "@/domain/shared/event/domain-event";
 import { ActivationEmailRequestedEvent } from "@/domain/user/event/lifecycle/activation-email-requested.event";
 import { PasswordResetCompletedEvent } from "@/domain/user/event/security/password-reset-completed.event";
 import { PasswordResetRequestedEvent } from "@/domain/user/event/security/password-reset-requested.event";
+import { ReauthenticationReason } from "@/domain/user/event/security/reauthentication-reason";
+import { UserReauthenticationRequiredEvent } from "@/domain/user/event/security/user-reauthentication-required.event";
 import { UserActivatedEvent } from "@/domain/user/event/lifecycle/user-activated.event";
 import { UserAvatarUpdatedEvent } from "@/domain/user/event/profile/user-avatar-updated.event";
 import { UserRegisteredEvent } from "@/domain/user/event/lifecycle/user-registered.event";
@@ -265,9 +267,11 @@ export class User {
     this.touch(now);
 
     this.events.push(new PasswordResetCompletedEvent(this.id, now));
+    this.requireReauthentication(ReauthenticationReason.PasswordReset, now);
   }
 
   public registerWrongPasswordAttempt(maxAttempts: number, now: Date): void {
+    const wasLocked = this.isLocked();
     const attempts = this.security.getTotalWrongPassword() + 1;
     this.security = this.security.withTotalWrongPassword(attempts);
 
@@ -277,6 +281,10 @@ export class User {
 
     this.touch(now);
     this.events.push(new UserWrongPasswordAttemptRegisteredEvent(this.id, now));
+
+    if (!wasLocked && this.isLocked()) {
+      this.requireReauthentication(ReauthenticationReason.AccountLocked, now);
+    }
   }
 
   public resetWrongPasswordAttempts(now: Date): void {
@@ -299,6 +307,7 @@ export class User {
     this.touch(now);
 
     this.events.push(new UserPasswordUpdatedEvent(this.id, now));
+    this.requireReauthentication(ReauthenticationReason.PasswordChanged, now);
   }
 
   public recordSuccessfulLogin(now: Date): void {
@@ -325,6 +334,8 @@ export class User {
     passwordHash: PasswordHash | null;
   }): void {
     let hasChanges = false;
+    const accessDisabled =
+      params.status !== null && this.status.isActive() && !params.status.isActive();
 
     if (params.username !== null) {
       this.username = params.username;
@@ -367,10 +378,19 @@ export class User {
 
     this.touch(params.now);
     this.events.push(new UserUpdatedByAdminEvent(this.id, params.now));
+
+    if (params.passwordHash !== null) {
+      this.requireReauthentication(ReauthenticationReason.PasswordChanged, params.now);
+    } else if (params.roles !== null) {
+      this.requireReauthentication(ReauthenticationReason.RolesChanged, params.now);
+    } else if (accessDisabled) {
+      this.requireReauthentication(ReauthenticationReason.AccessDisabled, params.now);
+    }
   }
 
   public deleteByAdmin(now: Date): void {
     this.events.push(new UserDeletedByAdminEvent(this.id, now));
+    this.requireReauthentication(ReauthenticationReason.AccountDeleted, now);
   }
 
   public isActive(): boolean {
@@ -443,6 +463,15 @@ export class User {
 
   private touch(now: Date): void {
     this.updatedAt = now;
+  }
+
+  private requireReauthentication(
+    reason: ReauthenticationReason,
+    now: Date,
+  ): void {
+    this.events.push(
+      new UserReauthenticationRequiredEvent(this.id, reason, now),
+    );
   }
 
   private assertActivationTokenValid(token: string, now: Date): void {

@@ -11,10 +11,6 @@ import {
   ACCESS_TOKEN_PROVIDER,
   type AccessTokenProviderPort,
 } from "@/application/auth/port/access-token-provider.port";
-import {
-  AUTH_TOKEN_ISSUER,
-  type AuthTokenIssuerPort,
-} from "@/application/auth/port/auth-token-issuer.port";
 import { AuthTokenIssuer } from "@/application/auth/service/auth-token-issuer";
 import { LoginUseCase } from "@/application/auth/use-case/command/login/login.use-case";
 import { LogoutUseCase } from "@/application/auth/use-case/command/logout/logout.use-case";
@@ -48,7 +44,7 @@ import { RefreshTokenNestCommandHandler } from "@/infrastructure/nest/cqrs/auth/
 import { PrismaService } from "@/infrastructure/persistence/prisma/prisma.service";
 import { PrismaTransactionContext } from "@/infrastructure/persistence/prisma/transaction/prisma-transaction-context";
 import { PrismaRefreshTokenRepository } from "@/infrastructure/persistence/refresh-token/prisma-refresh-token.repository";
-import { Sha256RefreshTokenHasher } from "@/infrastructure/service/crypto/sha256-refresh-token-hasher";
+import { Sha256RefreshTokenHasher } from "@/infrastructure/service/hasher/sha256-refresh-token-hasher";
 
 export const authCqrsHandlers: Provider[] = [
   LoginNestCommandHandler,
@@ -62,7 +58,7 @@ export const authUseCaseProviders: Provider[] = [
     useFactory: (
       users: UserRepositoryPort,
       passwordHasher: PasswordHasherPort,
-      tokenIssuer: AuthTokenIssuerPort,
+      tokenIssuer: AuthTokenIssuer,
       clock: ClockPort,
       config: ConfigPort,
       transactional: TransactionalPort,
@@ -78,7 +74,7 @@ export const authUseCaseProviders: Provider[] = [
     inject: [
       USER_REPOSITORY,
       PASSWORD_HASHER,
-      AUTH_TOKEN_ISSUER,
+      AuthTokenIssuer,
       CLOCK,
       CONFIG,
       TRANSACTIONAL,
@@ -90,7 +86,7 @@ export const authUseCaseProviders: Provider[] = [
       users: UserRepositoryPort,
       refreshTokens: RefreshTokenRepositoryPort,
       refreshTokenHasher: RefreshTokenHasherPort,
-      tokenIssuer: AuthTokenIssuerPort,
+      tokenIssuer: AuthTokenIssuer,
       clock: ClockPort,
       transactional: TransactionalPort,
     ) =>
@@ -106,7 +102,7 @@ export const authUseCaseProviders: Provider[] = [
       USER_REPOSITORY,
       REFRESH_TOKEN_REPOSITORY,
       REFRESH_TOKEN_HASHER,
-      AUTH_TOKEN_ISSUER,
+      AuthTokenIssuer,
       CLOCK,
       TRANSACTIONAL,
     ],
@@ -122,9 +118,9 @@ export const authUseCaseProviders: Provider[] = [
   },
 ];
 
-export const authPortProviders: Provider[] = [
+export const authServiceProviders: Provider[] = [
   {
-    provide: AUTH_TOKEN_ISSUER,
+    provide: AuthTokenIssuer,
     useFactory: (
       accessTokens: AccessTokenProviderPort,
       tokenProvider: TokenProviderPort,
@@ -147,6 +143,9 @@ export const authPortProviders: Provider[] = [
       CONFIG,
     ],
   },
+];
+
+export const authPortProviders: Provider[] = [
   {
     provide: REFRESH_TOKEN_REPOSITORY,
     useFactory: (

@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import {
   authCqrsHandlers,
   authPortProviders,
+  authServiceProviders,
   authUseCaseProviders,
 } from "@/infrastructure/nest/modules/auth/auth.providers";
 import { CoreModule } from "@/infrastructure/nest/modules/core/core.module";
@@ -13,6 +14,7 @@ import { AuthController } from "@/presentation/http/auth/auth.controller";
   providers: [
     ...authCqrsHandlers,
     ...authUseCaseProviders,
+    ...authServiceProviders,
     ...authPortProviders,
   ],
 })

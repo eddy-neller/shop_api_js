@@ -22,7 +22,7 @@ import { PrismaTransactionContext } from "@/infrastructure/persistence/prisma/tr
 import { PrismaTransactional } from "@/infrastructure/persistence/prisma/transaction/prisma-transactional";
 import { PrismaUserRepository } from "@/infrastructure/persistence/user/prisma-user.repository";
 import { EnvConfig } from "@/infrastructure/service/config/env-config";
-import { BcryptPasswordHasher } from "@/infrastructure/service/crypto/bcrypt-password-hasher";
+import { BcryptPasswordHasher } from "@/infrastructure/service/hasher/bcrypt-password-hasher";
 import { UuidGenerator } from "@/infrastructure/service/id/uuid-generator";
 import { PathAvatarUrlResolver } from "@/infrastructure/service/storage/path-avatar-url-resolver";
 import { Base64TokenProvider } from "@/infrastructure/service/token/base64-token-provider";

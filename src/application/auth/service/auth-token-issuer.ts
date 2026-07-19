@@ -2,7 +2,6 @@ import { addIsoDuration } from "@/application/shared/date-interval";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import { AuthTokensReadModel } from "@/application/auth/dto/auth-tokens.read-model";
 import type { AccessTokenProviderPort } from "@/application/auth/port/access-token-provider.port";
-import type { AuthTokenIssuerPort } from "@/application/auth/port/auth-token-issuer.port";
 import type { RefreshTokenHasherPort } from "@/application/auth/port/refresh-token-hasher.port";
 import type { RefreshTokenRepositoryPort } from "@/application/auth/port/refresh-token-repository.port";
 import type { TokenProviderPort } from "@/application/shared/port/token-provider.port";
@@ -10,7 +9,7 @@ import { RefreshToken } from "@/domain/refresh-token/model/refresh-token.aggrega
 import { RefreshTokenHash } from "@/domain/refresh-token/value-object/refresh-token-hash";
 import type { User } from "@/domain/user/model/user.aggregate";
 
-export class AuthTokenIssuer implements AuthTokenIssuerPort {
+export class AuthTokenIssuer {
   public constructor(
     private readonly accessTokens: AccessTokenProviderPort,
     private readonly tokenProvider: TokenProviderPort,
@@ -28,10 +27,6 @@ export class AuthTokenIssuer implements AuthTokenIssuerPort {
     });
 
     const rawRefreshToken = this.tokenProvider.generateRandomToken();
-    const refreshExpiresAt = addIsoDuration(
-      now,
-      this.config.getString("JWT_REFRESH_TTL"),
-    );
 
     const refreshToken = RefreshToken.issue({
       id: this.refreshTokens.nextIdentity(),
@@ -39,7 +34,10 @@ export class AuthTokenIssuer implements AuthTokenIssuerPort {
       tokenHash: RefreshTokenHash.fromString(
         this.refreshTokenHasher.hash(rawRefreshToken),
       ),
-      expiresAt: refreshExpiresAt,
+      expiresAt: addIsoDuration(
+        now,
+        this.config.getString("JWT_REFRESH_TTL"),
+      ),
       now,
     });
 

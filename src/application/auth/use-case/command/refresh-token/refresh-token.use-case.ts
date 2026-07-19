@@ -1,7 +1,7 @@
 import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
 import type { AuthTokensReadModel } from "@/application/auth/dto/auth-tokens.read-model";
-import type { AuthTokenIssuerPort } from "@/application/auth/port/auth-token-issuer.port";
+import type { AuthTokenIssuer } from "@/application/auth/service/auth-token-issuer";
 import type { RefreshTokenHasherPort } from "@/application/auth/port/refresh-token-hasher.port";
 import type { RefreshTokenRepositoryPort } from "@/application/auth/port/refresh-token-repository.port";
 import type { UserRepositoryPort } from "@/application/shared/port/user-repository.port";
@@ -14,7 +14,7 @@ export class RefreshTokenUseCase {
     private readonly users: UserRepositoryPort,
     private readonly refreshTokens: RefreshTokenRepositoryPort,
     private readonly refreshTokenHasher: RefreshTokenHasherPort,
-    private readonly tokenIssuer: AuthTokenIssuerPort,
+    private readonly tokenIssuer: AuthTokenIssuer,
     private readonly clock: ClockPort,
     private readonly transactional: TransactionalPort,
   ) {}
@@ -46,7 +46,6 @@ export class RefreshTokenUseCase {
         throw new InvalidRefreshTokenException();
       }
 
-      // Usage unique: l'ancien refresh token est revoque avant d'en emettre un nouveau (rotation).
       await this.refreshTokens.delete(storedToken);
 
       return this.tokenIssuer.issue(user, now);

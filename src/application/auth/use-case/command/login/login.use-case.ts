@@ -2,7 +2,7 @@ import type { ClockPort } from "@/application/shared/port/clock.port";
 import type { ConfigPort } from "@/application/shared/port/config.port";
 import type { TransactionalPort } from "@/application/shared/port/transactional.port";
 import type { AuthTokensReadModel } from "@/application/auth/dto/auth-tokens.read-model";
-import type { AuthTokenIssuerPort } from "@/application/auth/port/auth-token-issuer.port";
+import type { AuthTokenIssuer } from "@/application/auth/service/auth-token-issuer";
 import type { PasswordHasherPort } from "@/application/shared/port/password-hasher.port";
 import type { UserRepositoryPort } from "@/application/shared/port/user-repository.port";
 import type { LoginCommand } from "@/application/auth/use-case/command/login/login.command";
@@ -15,7 +15,7 @@ export class LoginUseCase {
   public constructor(
     private readonly users: UserRepositoryPort,
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly tokenIssuer: AuthTokenIssuerPort,
+    private readonly tokenIssuer: AuthTokenIssuer,
     private readonly clock: ClockPort,
     private readonly config: ConfigPort,
     private readonly transactional: TransactionalPort,
@@ -26,37 +26,41 @@ export class LoginUseCase {
     const now = this.clock.now();
     const maxAttempts = this.config.getNumber("MAX_LOGIN_ATTEMPTS");
 
-    return this.transactional.execute(async () => {
-      const user = await this.users.findByEmail(email);
+    const user = await this.users.findByEmail(email);
 
-      if (user === null) {
-        throw new InvalidCredentialsException();
-      }
+    if (user === null) {
+      throw new InvalidCredentialsException();
+    }
 
-      if (user.isLocked()) {
-        throw new UserLockedException();
-      }
+    if (user.isLocked()) {
+      throw new UserLockedException();
+    }
 
-      const passwordValid = await this.passwordHasher.verify(
-        user.getPasswordHash().toString(),
-        command.plainPassword,
-      );
+    const passwordValid = await this.passwordHasher.verify(
+      user.getPasswordHash().toString(),
+      command.plainPassword,
+    );
 
-      if (!passwordValid) {
+    if (!passwordValid) {
+      const locked = await this.transactional.execute(async () => {
         user.registerWrongPasswordAttempt(maxAttempts, now);
         await this.users.save(user);
 
-        if (user.isLocked()) {
-          throw new UserLockedException();
-        }
+        return user.isLocked();
+      });
 
-        throw new InvalidCredentialsException();
+      if (locked) {
+        throw new UserLockedException();
       }
 
-      if (!user.isActive()) {
-        throw new AccountNotActivatedException();
-      }
+      throw new InvalidCredentialsException();
+    }
 
+    if (!user.isActive()) {
+      throw new AccountNotActivatedException();
+    }
+
+    return this.transactional.execute(async () => {
       user.resetWrongPasswordAttempts(now);
       user.recordSuccessfulLogin(now);
       await this.users.save(user);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PasswordHasherPort } from "@/application/shared/port/password-hasher.port";
+import type { TransactionalPort } from "@/application/shared/port/transactional.port";
 import { LoginCommand } from "@/application/auth/use-case/command/login/login.command";
 import { LoginUseCase } from "@/application/auth/use-case/command/login/login.use-case";
 import { AccountNotActivatedException } from "@/domain/user/exception/lifecycle/account-not-activated.exception";
@@ -49,6 +50,7 @@ function makeUseCase(
   repository: InMemoryUserRepository,
   refreshTokens: InMemoryRefreshTokenRepository,
   hasher: PasswordHasherPort = makeHasher(),
+  transactional: TransactionalPort = makeTransactional(),
 ): LoginUseCase {
   return new LoginUseCase(
     repository,
@@ -56,7 +58,7 @@ function makeUseCase(
     makeTokenIssuer(refreshTokens, "refresh-token"),
     makeClock(),
     makeConfig(),
-    makeTransactional(),
+    transactional,
   );
 }
 
@@ -109,6 +111,34 @@ describe("LoginUseCase", () => {
     const user = await repository.findByEmail(Email.fromString(EMAIL));
     expect(user?.toSnapshot().security.totalWrongPassword).toBe(1);
     expect(refreshTokens.tokens).toHaveLength(0);
+  });
+
+  it("commits a wrong-password attempt before returning its error", async () => {
+    const repository = new InMemoryUserRepository();
+    const refreshTokens = new InMemoryRefreshTokenRepository();
+    await saveUser(repository);
+
+    let committed = false;
+    const transactional: TransactionalPort = {
+      execute: async (callback) => {
+        const result = await callback();
+        committed = true;
+
+        return result;
+      },
+    };
+    const useCase = makeUseCase(
+      repository,
+      refreshTokens,
+      makeHasher("hashed-password", false),
+      transactional,
+    );
+
+    await expect(
+      useCase.execute(new LoginCommand(EMAIL, "WrongPass1!")),
+    ).rejects.toBeInstanceOf(InvalidCredentialsException);
+
+    expect(committed).toBe(true);
   });
 
   it("locks the account once the attempts threshold is reached", async () => {
