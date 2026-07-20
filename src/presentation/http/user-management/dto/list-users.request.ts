@@ -1,14 +1,6 @@
 import { Transform, Type } from "class-transformer";
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  ValidateNested,
-} from "class-validator";
+import { IsInt, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 
-import { MAX_ITEMS_PER_PAGE } from "@/application/shared/pagination";
 import type { SortDirection } from "@/application/shared/sort-direction";
 import { IsSortDirection } from "@/presentation/http/shared/validation/is-sort-direction.decorator";
 
@@ -49,7 +41,6 @@ export class ListUsersRequest {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(MAX_ITEMS_PER_PAGE)
   public itemsPerPage?: number;
 
   @IsOptional()

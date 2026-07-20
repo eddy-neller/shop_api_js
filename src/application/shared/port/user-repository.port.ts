@@ -12,11 +12,16 @@ export type UserSortField = (typeof USER_SORT_FIELDS)[number];
 
 export type { SortDirection };
 
+export type UserOrderBy = {
+  field: UserSortField;
+  direction: SortDirection;
+};
+
 export type UserListCriteria = {
   page: number;
   itemsPerPage: number;
   filters: { username?: string; email?: string };
-  orderBy: { field: UserSortField; direction: SortDirection };
+  orderBy: readonly UserOrderBy[];
 };
 
 export type UserListResult = {

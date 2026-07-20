@@ -10,7 +10,6 @@ import { InvalidCurrentPasswordException } from "@/domain/user/exception/securit
 import { InvalidEmailException } from "@/domain/user/exception/identity/invalid-email.exception";
 import { InvalidFirstnameException } from "@/domain/user/exception/profile/invalid-firstname.exception";
 import { InvalidLastnameException } from "@/domain/user/exception/profile/invalid-lastname.exception";
-import { InvalidPasswordHashException } from "@/domain/user/exception/security/invalid-password-hash.exception";
 import { InvalidPreferencesException } from "@/domain/user/exception/profile/invalid-preferences.exception";
 import { InvalidRoleException } from "@/domain/user/exception/access/invalid-role.exception";
 import { InvalidUserStatusException } from "@/domain/user/exception/lifecycle/invalid-user-status.exception";
@@ -124,11 +123,6 @@ describe("toUserHttpException", () => {
       "UnprocessableEntityException",
     ],
     [
-      new InvalidPasswordHashException(),
-      400,
-      "BadRequestException",
-    ],
-    [
       new UserDomainException("Password reset token is invalid."),
       400,
       "BadRequestException",
@@ -144,6 +138,7 @@ describe("toUserHttpException", () => {
       expect(httpException.message).toBe(exception.message);
     },
   );
+
 });
 
 describe("DomainExceptionFilter (global fallback)", () => {

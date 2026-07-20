@@ -63,6 +63,7 @@ export class LoginUseCase {
     return this.transactional.execute(async () => {
       user.resetWrongPasswordAttempts(now);
       user.recordSuccessfulLogin(now);
+
       await this.users.save(user);
 
       return this.tokenIssuer.issue(user, now);

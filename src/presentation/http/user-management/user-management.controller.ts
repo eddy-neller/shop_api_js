@@ -2,26 +2,36 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
   HttpCode,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
   Res,
+  UploadedFile,
   UseFilters,
+  UseInterceptors,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import { DisplayUserQuery } from "@/application/account/use-case/query/display-user/display-user.query";
+import { UpdateAvatarCommand } from "@/application/account/use-case/command/update-avatar/update-avatar.command";
 import { CreateUserByAdminCommand } from "@/application/user-management/use-case/command/create-user-by-admin/create-user-by-admin.command";
 import { DeleteUserByAdminCommand } from "@/application/user-management/use-case/command/delete-user-by-admin/delete-user-by-admin.command";
 import { UpdateUserByAdminCommand } from "@/application/user-management/use-case/command/update-user-by-admin/update-user-by-admin.command";
 import { ListUsersQuery } from "@/application/user-management/use-case/query/list-users/list-users.query";
 import type { UserListReadModel } from "@/application/user-management/dto/user-list.read-model";
 import type { UserReadModel } from "@/application/shared/dto/user-read-model";
-import { USER_SORT_FIELDS } from "@/application/shared/port/user-repository.port";
+import {
+  USER_SORT_FIELDS,
+  type UserOrderBy,
+} from "@/application/shared/port/user-repository.port";
 import { UserRole } from "@/domain/user/value-object/access/user-role";
 import { Roles } from "@/presentation/http/shared/decorator/roles.decorator";
 import { UserPresenter, type UserResponse } from "@/presentation/http/shared/presenter/user.response";
@@ -50,14 +60,13 @@ export class UserManagementController {
     @Query() request: ListUsersRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<UserListItemResponse[]> {
-    let order: ListUsersQuery["order"] = null;
+    const order: UserOrderBy[] = [];
     const requestedOrder = request.order;
     if (requestedOrder) {
       for (const field of USER_SORT_FIELDS) {
         const direction = requestedOrder[field];
         if (direction !== undefined) {
-          order = { field, direction };
-          break;
+          order.push({ field, direction });
         }
       }
     }
@@ -108,6 +117,35 @@ export class UserManagementController {
         request.firstname ?? null,
         request.lastname ?? null,
       ),
+    );
+
+    return this.userPresenter.present(user);
+  }
+
+  @Post(":id/avatar")
+  @UseInterceptors(FileInterceptor("avatarFile"))
+  public async updateAvatarByAdmin(
+    @Param("id", ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 3 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<UserResponse> {
+    const user = await this.commandBus.execute<
+      UpdateAvatarCommand,
+      UserReadModel
+    >(
+      new UpdateAvatarCommand(id, {
+        buffer: file.buffer,
+        mimeType: file.mimetype,
+        size: file.size,
+        originalName: file.originalname,
+      }),
     );
 
     return this.userPresenter.present(user);

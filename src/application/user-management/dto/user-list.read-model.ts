@@ -4,6 +4,4 @@ export type UserListReadModel = {
   items: UserReadModel[];
   totalItems: number;
   totalPages: number;
-  page: number;
-  itemsPerPage: number;
 };

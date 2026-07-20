@@ -68,22 +68,20 @@ function makeUseCase(): ListUsersUseCase {
 }
 
 describe("ListUsersUseCase", () => {
-  it("paginates the result and echoes pagination metadata", async () => {
+  it("paginates the result and returns total metadata", async () => {
     const useCase = makeUseCase();
 
-    const result = await useCase.execute(new ListUsersQuery(1, 2, {}, null));
+    const result = await useCase.execute(new ListUsersQuery(1, 2, {}, []));
 
     expect(result.items).toHaveLength(2);
     expect(result.totalItems).toBe(5);
     expect(result.totalPages).toBe(3);
-    expect(result.page).toBe(1);
-    expect(result.itemsPerPage).toBe(2);
   });
 
   it("sorts by createdAt DESC by default", async () => {
     const useCase = makeUseCase();
 
-    const result = await useCase.execute(new ListUsersQuery(1, 10, {}, null));
+    const result = await useCase.execute(new ListUsersQuery(1, 10, {}, []));
 
     expect(result.items.map((item) => item.username)).toEqual([
       "dave",
@@ -98,7 +96,9 @@ describe("ListUsersUseCase", () => {
     const useCase = makeUseCase();
 
     const result = await useCase.execute(
-      new ListUsersQuery(1, 10, {}, { field: "username", direction: "ASC" }),
+      new ListUsersQuery(1, 10, {}, [
+        { field: "username", direction: "ASC" },
+      ]),
     );
 
     expect(result.items.map((item) => item.username)).toEqual([
@@ -118,7 +118,7 @@ describe("ListUsersUseCase", () => {
         1,
         10,
         { username: "ali" },
-        { field: "username", direction: "ASC" },
+        [{ field: "username", direction: "ASC" }],
       ),
     );
 
@@ -129,20 +129,18 @@ describe("ListUsersUseCase", () => {
     expect(result.totalItems).toBe(2);
   });
 
-  it("clamps invalid pagination input to safe defaults", async () => {
+  it("normalizes invalid pagination input to the shared defaults", async () => {
     const useCase = makeUseCase();
 
-    const result = await useCase.execute(new ListUsersQuery(0, 0, {}, null));
+    const result = await useCase.execute(new ListUsersQuery(0, 0, {}, []));
 
-    expect(result.page).toBe(1);
-    expect(result.itemsPerPage).toBe(1);
-    expect(result.items).toHaveLength(1);
+    expect(result.items).toHaveLength(5);
   });
 
   it("carries the raw avatar name for each item", async () => {
     const useCase = makeUseCase();
 
-    const result = await useCase.execute(new ListUsersQuery(1, 10, {}, null));
+    const result = await useCase.execute(new ListUsersQuery(1, 10, {}, []));
 
     for (const item of result.items) {
       expect(item.avatarName).toBeNull();

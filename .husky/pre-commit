@@ -1,3 +1,11 @@
+branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo HEAD)"
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  printf "\n\033[31m🚫 Commit interdit sur la branche '%s'.\033[0m\n" "$branch"
+  printf "Crée une feature branch et ouvre une MR (ou --no-verify si exceptionnel).\n\n"
+  exit 1
+fi
+
 printf "\033[36m🔎 Lint...\033[0m\n"
 npm run lint
 

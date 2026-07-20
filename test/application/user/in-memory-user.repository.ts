@@ -92,12 +92,18 @@ export class InMemoryUserRepository implements UserRepositoryPort {
       );
     }
 
-    const { field, direction } = criteria.orderBy;
     users.sort((a, b) => {
-      const left = this.sortValue(a, field);
-      const right = this.sortValue(b, field);
-      const comparison = left < right ? -1 : left > right ? 1 : 0;
-      return direction === 'ASC' ? comparison : -comparison;
+      for (const { field, direction } of criteria.orderBy) {
+        const left = this.sortValue(a, field);
+        const right = this.sortValue(b, field);
+        const comparison = left < right ? -1 : left > right ? 1 : 0;
+
+        if (comparison !== 0) {
+          return direction === 'ASC' ? comparison : -comparison;
+        }
+      }
+
+      return 0;
     });
 
     const totalItems = users.length;
@@ -108,7 +114,10 @@ export class InMemoryUserRepository implements UserRepositoryPort {
     return Promise.resolve({ users: paged, totalItems, totalPages });
   }
 
-  private sortValue(user: User, field: UserListCriteria['orderBy']['field']): string | number {
+  private sortValue(
+    user: User,
+    field: UserListCriteria['orderBy'][number]['field'],
+  ): string | number {
     const snapshot = user.toSnapshot();
 
     if (field === 'createdAt') {

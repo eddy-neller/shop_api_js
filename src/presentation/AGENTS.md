@@ -69,6 +69,7 @@ Routes admin (`UserManagementController`, `@Roles(UserRole.Admin)`):
 - `GET /users` (liste paginee).
 - `GET /users/:id` avec `DisplayUserQuery`.
 - `POST /users` avec `CreateUserByAdminRequest`.
+- `POST /users/:id/avatar` en `multipart/form-data` (champ `avatarFile`), reponse `UserResponse` avec `avatarUrl`.
 - `PATCH /users/:id` avec `UpdateUserByAdminRequest`.
 - `DELETE /users/:id`, reponse `204`.
 

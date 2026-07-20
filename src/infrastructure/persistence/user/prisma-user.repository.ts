@@ -126,10 +126,11 @@ export class PrismaUserRepository implements UserRepositoryPort {
       };
     }
 
-    const orderBy: Prisma.UserOrderByWithRelationInput = {
-      [criteria.orderBy.field]:
-        criteria.orderBy.direction === "ASC" ? "asc" : "desc",
-    };
+    const orderBy: Prisma.UserOrderByWithRelationInput[] = criteria.orderBy.map(
+      ({ field, direction }) => ({
+        [field]: direction === "ASC" ? "asc" : "desc",
+      }),
+    );
 
     const client = this.client();
     const [records, totalItems] = await Promise.all([
