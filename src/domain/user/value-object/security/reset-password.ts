@@ -5,11 +5,19 @@ export type ResetPasswordSnapshot = {
 };
 
 export class ResetPassword {
-  public constructor(
+  private constructor(
     private readonly mailSent = 0,
     private readonly token: string | null = null,
     private readonly tokenTtl: number | null = null,
   ) {}
+
+  public static create(
+    mailSent = 0,
+    token: string | null = null,
+    tokenTtl: number | null = null,
+  ): ResetPassword {
+    return new ResetPassword(mailSent, token, tokenTtl);
+  }
 
   public static fromObject(value: Record<string, unknown>): ResetPassword {
     return new ResetPassword(

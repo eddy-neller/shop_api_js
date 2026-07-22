@@ -297,6 +297,7 @@ Ne pas corriger des fichiers sans rapport pour satisfaire un formatage global sa
 - Si un port Docker change, mettre a jour `docker-compose*.yaml`, `.env.example` et la documentation utile ensemble.
 - Ne pas modifier une migration deja partagee pour changer l'historique; creer une nouvelle migration sauf contexte local explicitement jetable.
 - Les changements d'architecture doivent etre refletes ici si les conventions changent.
+- Convention Git locale : pour committer, utiliser `git cm "<message>"`; pour pousser, utiliser `git psa && git fa`.
 
 ---
 

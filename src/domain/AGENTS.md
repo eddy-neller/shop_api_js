@@ -54,7 +54,7 @@ Regles:
 
 - Aucune dependance vers Application, Infrastructure ou Presentation.
 - Aucune dependance NestJS, Prisma, class-validator, bcrypt, crypto, HTTP, DB ou environnement.
-- Les Value Objects valident et normalisent leurs invariants (`Email`, `UserId`, `PasswordHash`).
+- Les Value Objects sont immuables, valident et normalisent leurs invariants (`Email`, `UserId`, `PasswordHash`). Leur constructeur est `private`, sans exception : toute creation passe par une factory statique nommee (`fromString`, `fromObject`, `create`, etc.) qui exprime l'intention et centralise les invariants. Aucun `new ValueObject(...)` hors de sa propre classe.
 - Les comparaisons de Value Objects se font via `equals()` quand disponible.
 - Les aggregats exposent des methodes metier et des factories (`register`, `fromSnapshot`), pas de setters publics.
 - `fromSnapshot` sert a rehydrater depuis la persistance et ne doit pas enregistrer d'event metier.

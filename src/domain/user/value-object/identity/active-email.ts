@@ -6,12 +6,21 @@ export type ActiveEmailSnapshot = {
 };
 
 export class ActiveEmail {
-  public constructor(
+  private constructor(
     private readonly mailSent = 0,
     private readonly token: string | null = null,
     private readonly tokenTtl: number | null = null,
     private readonly lastAttempt: Date | null = null,
   ) {}
+
+  public static create(
+    mailSent = 0,
+    token: string | null = null,
+    tokenTtl: number | null = null,
+    lastAttempt: Date | null = null,
+  ): ActiveEmail {
+    return new ActiveEmail(mailSent, token, tokenTtl, lastAttempt);
+  }
 
   public static fromObject(value: Record<string, unknown>): ActiveEmail {
     return new ActiveEmail(

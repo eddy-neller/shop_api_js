@@ -5,11 +5,23 @@ export type SecuritySnapshot = {
 };
 
 export class Security {
-  public constructor(
+  private constructor(
     private readonly totalWrongPassword = 0,
     private readonly totalWrongTwoFactorCode = 0,
     private readonly totalTwoFactorSmsSent = 0,
   ) {}
+
+  public static create(
+    totalWrongPassword = 0,
+    totalWrongTwoFactorCode = 0,
+    totalTwoFactorSmsSent = 0,
+  ): Security {
+    return new Security(
+      totalWrongPassword,
+      totalWrongTwoFactorCode,
+      totalTwoFactorSmsSent,
+    );
+  }
 
   public static fromObject(value: Record<string, unknown>): Security {
     return new Security(

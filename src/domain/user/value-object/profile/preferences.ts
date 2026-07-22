@@ -12,8 +12,12 @@ export type PreferencesSnapshot = {
 export class Preferences {
   private readonly lang: Lang;
 
-  public constructor(lang: string = DEFAULT_LANG) {
+  private constructor(lang: string = DEFAULT_LANG) {
     this.lang = Preferences.normalizeLang(lang);
+  }
+
+  public static create(lang: string = DEFAULT_LANG): Preferences {
+    return new Preferences(lang);
   }
 
   public static fromObject(value: Record<string, unknown>): Preferences {

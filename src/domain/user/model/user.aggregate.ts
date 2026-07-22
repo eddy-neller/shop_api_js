@@ -104,9 +104,9 @@ export class User {
       params.passwordHash,
       [UserRole.User],
       UserStatus.inactive(),
-      new Security(),
-      new ActiveEmail(),
-      new ResetPassword(),
+      Security.create(),
+      ActiveEmail.create(),
+      ResetPassword.create(),
       params.preferences,
       null,
       params.now,
@@ -143,9 +143,9 @@ export class User {
       params.passwordHash,
       [...params.roles],
       params.status,
-      new Security(),
-      new ActiveEmail(),
-      new ResetPassword(),
+      Security.create(),
+      ActiveEmail.create(),
+      ResetPassword.create(),
       params.preferences,
       null,
       params.now,
@@ -213,7 +213,7 @@ export class User {
       throw new ActivationLimitReachedException();
     }
 
-    this.activeEmail = new ActiveEmail(
+    this.activeEmail = ActiveEmail.create(
       this.activeEmail.getMailSent() + 1,
       token,
       User.toUnixTimestamp(expiresAt),
@@ -236,7 +236,7 @@ export class User {
   }
 
   public clearActivation(): void {
-    this.activeEmail = new ActiveEmail();
+    this.activeEmail = ActiveEmail.create();
   }
 
   public requestPasswordReset(token: string, expiresAt: Date, now: Date): void {
@@ -247,7 +247,7 @@ export class User {
       throw new ResetPasswordLimitReachedException();
     }
 
-    this.resetPassword = new ResetPassword(
+    this.resetPassword = ResetPassword.create(
       this.resetPassword.getMailSent() + 1,
       token,
       User.toUnixTimestamp(expiresAt),
@@ -263,7 +263,7 @@ export class User {
   ): void {
     this.assertResetPasswordTokenValid(token, now);
     this.passwordHash = passwordHash;
-    this.resetPassword = new ResetPassword();
+    this.resetPassword = ResetPassword.create();
     this.touch(now);
 
     this.events.push(new PasswordResetCompletedEvent(this.id, now));
@@ -502,7 +502,7 @@ export class User {
     const ttl = this.activeEmail.getTokenTtl();
 
     if (ttl !== null && ttl <= User.toUnixTimestamp(now)) {
-      this.activeEmail = new ActiveEmail();
+      this.activeEmail = ActiveEmail.create();
     }
   }
 
@@ -510,7 +510,7 @@ export class User {
     const ttl = this.resetPassword.getTokenTtl();
 
     if (ttl !== null && ttl <= User.toUnixTimestamp(now)) {
-      this.resetPassword = new ResetPassword();
+      this.resetPassword = ResetPassword.create();
     }
   }
 

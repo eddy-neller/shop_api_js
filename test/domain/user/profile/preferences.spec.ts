@@ -4,24 +4,24 @@ import { Preferences } from "@/domain/user/value-object/profile/preferences";
 
 describe("Preferences value object", () => {
   it("defaults to the en language", () => {
-    expect(new Preferences().toObject()).toEqual({ lang: "en" });
+    expect(Preferences.create().toObject()).toEqual({ lang: "en" });
   });
 
   it.each([["en"], ["fr"]])("accepts the supported lang %s", (lang) => {
-    expect(new Preferences(lang).toObject().lang).toBe(lang);
+    expect(Preferences.create(lang).toObject().lang).toBe(lang);
   });
 
   it.each([["EN"], ["Fr"], ["FR"]])(
     "normalizes the supported lang %s regardless of case",
     (lang) => {
-      expect(new Preferences(lang).toObject().lang).toBe(lang.toLowerCase());
+      expect(Preferences.create(lang).toObject().lang).toBe(lang.toLowerCase());
     },
   );
 
   it.each([["de"], ["fra"], [""]])(
     "rejects the unsupported lang %s",
     (lang) => {
-      expect(() => new Preferences(lang)).toThrow(InvalidPreferencesException);
+      expect(() => Preferences.create(lang)).toThrow(InvalidPreferencesException);
     },
   );
 

@@ -36,7 +36,7 @@ async function saveUser(
     passwordHash: PasswordHash.fromString("hashed-password"),
     roles: [UserRole.User],
     status,
-    preferences: new Preferences(),
+    preferences: Preferences.create(),
     now: fixedNow,
   });
 

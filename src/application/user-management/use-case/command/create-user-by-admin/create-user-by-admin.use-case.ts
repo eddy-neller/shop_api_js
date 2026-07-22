@@ -49,7 +49,7 @@ export class CreateUserByAdminUseCase {
       passwordHash,
       roles,
       status: status,
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now,
       firstname: firstname,
       lastname: lastname,

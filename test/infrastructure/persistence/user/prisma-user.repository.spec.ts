@@ -52,7 +52,7 @@ function makeUser(): User {
     passwordHash: PasswordHash.fromString("hashed-password"),
     roles: [UserRole.User],
     status: UserStatus.active(),
-    preferences: new Preferences(),
+    preferences: Preferences.create(),
     now: new Date("2026-06-22T12:00:00.000Z"),
   });
 }

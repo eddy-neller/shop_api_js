@@ -136,7 +136,7 @@ describe('User aggregate', () => {
       passwordHash: PasswordHash.fromString('hashed-password'),
       roles: [UserRole.User, UserRole.Admin],
       status: UserStatus.active(),
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now,
       firstname: Firstname.fromString('Jane'),
       lastname: Lastname.fromString('Doe')
@@ -160,7 +160,7 @@ describe('User aggregate', () => {
       passwordHash: PasswordHash.fromString('hashed-password'),
       roles: [UserRole.User],
       status: UserStatus.active(),
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now: createdAt
     });
     user.pullEvents();
@@ -230,7 +230,7 @@ describe('User aggregate', () => {
       passwordHash: PasswordHash.fromString('hashed-password'),
       roles: [UserRole.User],
       status: UserStatus.active(),
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now
     });
     user.pullEvents();
@@ -265,7 +265,7 @@ describe('User aggregate', () => {
       passwordHash: PasswordHash.fromString('hashed-password'),
       roles: [UserRole.User],
       status: UserStatus.active(),
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now
     });
     user.pullEvents();

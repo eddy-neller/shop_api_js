@@ -1,4 +1,4 @@
-import { UserDomainException } from "@/domain/user/exception/user-domain-exception";
+import { InvalidUsernameException } from "@/domain/user/exception/identity/invalid-username.exception";
 
 const MIN_LENGTH = 2;
 const MAX_LENGTH = 20;
@@ -10,19 +10,15 @@ export class Username {
     const trimmed = value.trim();
 
     if (trimmed.length === 0) {
-      throw new UserDomainException("Username cannot be empty.");
+      throw InvalidUsernameException.empty();
     }
 
     if (trimmed.length < MIN_LENGTH) {
-      throw new UserDomainException(
-        `Username must contain at least ${MIN_LENGTH} characters.`,
-      );
+      throw InvalidUsernameException.tooShort(MIN_LENGTH);
     }
 
     if (trimmed.length > MAX_LENGTH) {
-      throw new UserDomainException(
-        `Username cannot exceed ${MAX_LENGTH} characters.`,
-      );
+      throw InvalidUsernameException.tooLong(MAX_LENGTH);
     }
 
     return new Username(trimmed);

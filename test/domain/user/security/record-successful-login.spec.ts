@@ -14,7 +14,7 @@ describe("User.recordSuccessfulLogin", () => {
       username: Username.fromString("john"),
       email: Email.fromString("john@example.com"),
       passwordHash: PasswordHash.fromString("hashed-password"),
-      preferences: new Preferences(),
+      preferences: Preferences.create(),
       now: registeredAt,
     });
 

@@ -40,7 +40,7 @@ async function seedUser(repository: InMemoryUserRepository): Promise<void> {
     passwordHash: PasswordHash.fromString("hash"),
     roles: [UserRole.User],
     status: UserStatus.active(),
-    preferences: new Preferences(),
+    preferences: Preferences.create(),
     now: fixedNow,
   });
 

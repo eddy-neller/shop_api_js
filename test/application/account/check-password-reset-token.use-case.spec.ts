@@ -25,7 +25,7 @@ async function seedUserWithResetToken(
     passwordHash: PasswordHash.fromString("hashed-password"),
     roles: [UserRole.User],
     status: UserStatus.active(),
-    preferences: new Preferences(),
+    preferences: Preferences.create(),
     now: fixedNow,
   });
 
