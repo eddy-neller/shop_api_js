@@ -47,7 +47,8 @@ export const coreProviders: Provider[] = [
   },
   {
     provide: PASSWORD_HASHER,
-    useClass: BcryptPasswordHasher,
+    useFactory: (config: ConfigPort) => new BcryptPasswordHasher(config),
+    inject: [CONFIG],
   },
   {
     provide: ID_GENERATOR,

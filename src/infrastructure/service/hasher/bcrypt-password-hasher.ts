@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
+import type { ConfigPort } from '@/application/shared/port/config.port';
 import type { PasswordHasherPort } from '@/application/shared/port/password-hasher.port';
 
-@Injectable()
 export class BcryptPasswordHasher implements PasswordHasherPort {
+  public constructor(private readonly config: ConfigPort) {}
+
   public async hash(plainPassword: string): Promise<string> {
-    const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
+    const saltRounds = this.config.getNumber('BCRYPT_SALT_ROUNDS');
 
     return bcrypt.hash(plainPassword, saltRounds);
   }

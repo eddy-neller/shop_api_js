@@ -11,6 +11,7 @@ const DEFAULT_STRING_VALUES: Readonly<Record<string, string>> = {
 };
 
 const DEFAULT_NUMBER_VALUES: Readonly<Record<string, number>> = {
+  BCRYPT_SALT_ROUNDS: 12,
   MAX_LOGIN_ATTEMPTS: 5,
   AVATAR_MAX_SIZE: 2_097_152,
   AVATAR_MAX_DIMENSION: 512,
