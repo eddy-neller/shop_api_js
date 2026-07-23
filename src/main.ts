@@ -3,9 +3,17 @@ import { HttpStatus, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "@/infrastructure/nest/app.module";
+import {
+  createCorsOptions,
+  parseCorsOriginRegex,
+} from "@/infrastructure/nest/cors/cors-options";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.enableCors(
+    createCorsOptions(parseCorsOriginRegex(process.env.CORS_ORIGIN_REGEX)),
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({

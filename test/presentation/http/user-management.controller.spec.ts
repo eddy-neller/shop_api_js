@@ -20,8 +20,6 @@ describe("UserManagementController", () => {
       items: [],
       totalItems: 0,
       totalPages: 0,
-      page: 1,
-      itemsPerPage: 30,
     };
     const execute = vi.fn().mockResolvedValue(result);
     const setHeader = vi.fn();
